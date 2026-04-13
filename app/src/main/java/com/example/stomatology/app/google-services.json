@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "430059241687",
+    "project_id": "stomatology-4d473",
+    "storage_bucket": "stomatology-4d473.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:430059241687:android:b0dbeb41e7b8ce30f77092",
+        "android_client_info": {
+          "package_name": "com.example.stomatology.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCYSvqDi3hudS9gO__578rVaexYB33AJA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
