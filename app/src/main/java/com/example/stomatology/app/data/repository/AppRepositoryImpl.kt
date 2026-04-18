@@ -38,9 +38,18 @@ class AppRepositoryImpl @Inject constructor(
         val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
 
         val response = apiService.analyzeXray(body)
+
+        // Қорғаныс: Егер response.teethData null болса, emptyList() қайтарамыз
+        val findings = response.teethData?.map { dto ->
+            Finding(
+                toothClass = dto.toothName ?: "",
+                conditions = dto.conditions ?: emptyList()
+            )
+        } ?: emptyList()
+
         return AiAnalysisResult(
-            teethCount = response.teethCount,
-            findings = response.findings.map { Finding(it.toothClass, it.confidence) }
+            teethCount = response.teethCount ?: 0,
+            findings = findings
         )
     }
 }
