@@ -34,8 +34,7 @@ import com.example.stomatology.app.presentation.theme.PrimaryBlue
 @Composable
 fun HomeScreen(
     onNavigateToClinics: () -> Unit,
-    onNavigateToAi: () -> Unit,
-    onNavigateToOtherServices: () -> Unit // НОВЫЙ КОЛЛБЕК
+    onNavigateToAi: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 
@@ -107,7 +106,7 @@ fun HomeScreen(
             ServiceItem("Протезирование", Icons.Default.Face, onNavigateToClinics),
             ServiceItem("Пломба / Канал", Icons.Default.CheckCircle, onNavigateToClinics),
             ServiceItem("Имплант", Icons.Default.Star, onNavigateToClinics),
-            ServiceItem("Сломанный зуб", Icons.Default.Favorite, onNavigateToAi),
+            ServiceItem("Сломанный зуб", Icons.Default.Favorite, onNavigateToAi), // Переход к ИИ как пример
             ServiceItem("Брекеты", Icons.Default.Face, onNavigateToClinics)
         )
 
@@ -115,9 +114,9 @@ fun HomeScreen(
             columns = GridCells.Fixed(3),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp)
+                .height(240.dp) // Фиксированная высота для скроллируемой колонки внутри
                 .padding(horizontal = 8.dp),
-            userScrollEnabled = false
+            userScrollEnabled = false // Выключаем скролл сетки, т.к. скроллится весь экран
         ) {
             items(services) { service ->
                 ServiceCard(service)
@@ -126,12 +125,12 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ОБНОВЛЕННАЯ КНОПКА ПОИСКА ДОПОЛНИТЕЛЬНЫХ УСЛУГ
+        // Кнопка поиска "Search for other operative care"
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .clickable { onNavigateToOtherServices() }, // ИСПОЛЬЗУЕМ НОВЫЙ КОЛЛБЕК
+                .clickable { onNavigateToClinics() },
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -142,7 +141,7 @@ fun HomeScreen(
             ) {
                 Icon(Icons.Default.Search, contentDescription = "Search", tint = PrimaryBlue)
                 Spacer(modifier = Modifier.width(12.dp))
-                Text("Поиск других процедур", fontSize = 16.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+                Text("Search for other operative care", fontSize = 14.sp, color = Color.Gray)
             }
         }
 
