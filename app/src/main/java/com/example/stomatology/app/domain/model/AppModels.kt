@@ -10,12 +10,23 @@ data class Clinic(
     val imageUrl: String = ""
 )
 
+// --- УАҚЫТША AI МОДЕЛЬДЕРІ ---
 data class AiAnalysisResult(
     val teethCount: Int,
     val findings: List<Finding>
 )
 
 data class Finding(
-    val toothClass: String,
-    val confidence: Double
+    val toothClass: String, // 'RU1', 'LL3' сияқты
+    val conditions: List<String> // ['Caries', 'Filling'] сияқты аурулар тізімі
+)
+
+// Тістерге арналған статус кластары (Ui үшін керек)
+enum class ToothStatus {
+    HEALTHY, CARIES, PROSTHESIS, EXTRACTED
+}
+
+data class ToothState(
+    val number: Int,
+    val status: ToothStatus = ToothStatus.HEALTHY
 )
