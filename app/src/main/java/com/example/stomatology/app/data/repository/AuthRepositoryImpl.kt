@@ -1,7 +1,7 @@
 package com.example.stomatology.app.data.repository
 
-import com.google.firebase.auth.FirebaseAuth
 import com.example.stomatology.app.domain.repository.AuthRepository
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 

@@ -1,5 +1,7 @@
 package com.example.stomatology.app.presentation.ai_analysis
 
+import android.content.Context
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -19,7 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.stomatology.app.domain.model.Finding
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
+import java.io.File
+import java.io.FileOutputStream
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -41,72 +46,139 @@ fun AiAnalysisScreen(
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri -> uri?.let { viewModel.analyzeImage(context, it) } }
+    ) { uri ->
+        uri?.let {
+            runCatching {
+                uriToTempFile(context, it)
+            }.onSuccess { file ->
+                viewModel.analyzeImage(file)
+            }.onFailure { error ->
+                viewModel.resetState()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Стоматологическая карта", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, tint = Color.White, contentDescription = "Back") }
+                title = {
+                    Text(
+                        "Стоматологическая карта",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PrimaryBlue)
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            tint = Color.White,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PrimaryBlue
+                )
             )
         }
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding).fillMaxSize().background(Color(0xFF29323C)),
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(Color(0xFF29323C)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             when (val state = uiState) {
                 is AiState.Idle -> {
                     Spacer(modifier = Modifier.weight(1f))
+
                     Button(
                         onClick = { galleryLauncher.launch("image/*") },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-                    ) { Text("Рентген суретін таңдау", color = Color.White) }
+                    ) {
+                        Text("Рентген суретін таңдау", color = Color.White)
+                    }
+
                     Spacer(modifier = Modifier.weight(1f))
                 }
+
                 is AiState.Loading -> {
                     Spacer(modifier = Modifier.weight(1f))
+
                     CircularProgressIndicator(color = PrimaryBlue)
-                    Text("AI суретті талдауда...", color = Color.White, modifier = Modifier.padding(top = 16.dp))
+
+                    Text(
+                        "AI суретті талдауда...",
+                        color = Color.White,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
+
                     Spacer(modifier = Modifier.weight(1f))
                 }
+
                 is AiState.Success -> {
                     Box(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(24.dp))
-                            .background(PrimaryBlue).padding(vertical = 24.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(PrimaryBlue)
+                            .padding(vertical = 24.dp)
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                "Your Dental Chart",
-                                color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold,
-                                modifier = Modifier.align(Alignment.Start).padding(start = 24.dp)
+                                text = "Your Dental Chart",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .align(Alignment.Start)
+                                    .padding(start = 24.dp)
                             )
+
                             Spacer(modifier = Modifier.height(24.dp))
 
                             JawLayout(findings = state.result.findings)
 
                             Spacer(modifier = Modifier.height(32.dp))
+
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = Color.White),
                                 shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
                             ) {
-                                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
                                         text = "Барлығы ${state.result.teethCount} тіс табылды",
-                                        fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = Color.Black
                                     )
+
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
                                         LegendItem(ColorCaries, "Кариес")
                                         LegendItem(ColorProsthesis, "Коронка")
                                         LegendItem(ColorFilling, "Пломба")
                                     }
+
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
                                         LegendItem(ColorImplant, "Имплант")
                                         LegendItem(ColorMissing, "Көрінбейді")
                                         LegendItem(ColorHealthy, "Сау")
@@ -115,16 +187,33 @@ fun AiAnalysisScreen(
                             }
                         }
                     }
+
                     Spacer(modifier = Modifier.height(16.dp))
+
                     Button(
                         onClick = { galleryLauncher.launch("image/*") },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-                    ) { Text("Басқа суретті талдау", color = Color.White) }
+                    ) {
+                        Text("Басқа суретті талдау", color = Color.White)
+                    }
                 }
+
                 is AiState.Error -> {
                     Spacer(modifier = Modifier.weight(1f))
-                    Text("Қате: ${state.message}", color = Color.Red)
-                    Button(onClick = { galleryLauncher.launch("image/*") }) { Text("Қайта көру") }
+
+                    Text(
+                        text = "Қате: ${state.message}",
+                        color = Color.Red
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = { galleryLauncher.launch("image/*") }
+                    ) {
+                        Text("Қайта көру")
+                    }
+
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
@@ -132,9 +221,28 @@ fun AiAnalysisScreen(
     }
 }
 
+private fun uriToTempFile(context: Context, uri: Uri): File {
+    val inputStream = context.contentResolver.openInputStream(uri)
+        ?: throw IllegalArgumentException("Cannot open selected image")
+
+    val tempFile = File.createTempFile("xray_", ".jpg", context.cacheDir)
+
+    inputStream.use { input ->
+        FileOutputStream(tempFile).use { output ->
+            input.copyTo(output)
+        }
+    }
+
+    return tempFile
+}
+
 @Composable
-fun JawLayout(findings: List<com.example.stomatology.app.domain.model.Finding>) {
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(400.dp)) {
+fun JawLayout(findings: List<Finding>) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(400.dp)
+    ) {
         val centerX = maxWidth.value / 2
         val centerY = maxHeight.value / 2
         val radiusX = maxWidth.value * 0.35f
@@ -156,10 +264,10 @@ fun JawLayout(findings: List<com.example.stomatology.app.domain.model.Finding>) 
     }
 }
 
-// Пробелдер мен қателерден қорғалған функция
 fun mapYoloClassToNumber(yoloClass: String): Int {
     val cleanClass = yoloClass.trim().uppercase()
     if (cleanClass.length < 3) return -1
+
     val quadrant = cleanClass.substring(0, 2)
     val toothIndex = cleanClass.substring(2).toIntOrNull() ?: return -1
 
@@ -177,29 +285,37 @@ fun DrawTooth(
     x: androidx.compose.ui.unit.Dp,
     y: androidx.compose.ui.unit.Dp,
     number: Int,
-    findings: List<com.example.stomatology.app.domain.model.Finding>
+    findings: List<Finding>
 ) {
     val currentToothFinding = findings.find { finding ->
         mapYoloClassToNumber(finding.toothClass) == number
     }
 
     val toothColor = if (currentToothFinding == null) {
-        ColorMissing // Тіс табылмаса сұр болады
+        ColorMissing
     } else {
-        // Барлық ауру атауларын кіші әріпке айналдырып тексереміз (мысалы "Crown-Bridge" -> "crown-bridge")
         val conditions = currentToothFinding.conditions.map { it.lowercase() }
         when {
             conditions.any { it.contains("caries") } -> ColorCaries
             conditions.any { it.contains("filling") } -> ColorFilling
             conditions.any { it.contains("implant") } -> ColorImplant
             conditions.any { it.contains("crown") || it.contains("bridge") } -> ColorProsthesis
-            else -> ColorHealthy // Тіс табылған, бірақ ішінде ауру жоқ (АҚ ТҮС)
+            else -> ColorHealthy
         }
     }
 
-    Box(modifier = Modifier.offset(x = x - 12.dp, y = y - 12.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = Modifier.offset(x = x - 12.dp, y = y - 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "$number", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = "$number",
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+
             Box(
                 modifier = Modifier
                     .size(24.dp)
@@ -213,8 +329,18 @@ fun DrawTooth(
 @Composable
 fun LegendItem(color: Color, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(color))
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text, fontSize = 12.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            color = Color.DarkGray,
+            fontWeight = FontWeight.Medium
+        )
     }
 }

@@ -2,10 +2,18 @@ package com.example.stomatology.app.presentation.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,13 +25,17 @@ import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,20 +45,31 @@ import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @Composable
 fun HomeScreen(
-    onNavigateToClinics: () -> Unit,
+    onNavigateToClinics: (String) -> Unit,
     onNavigateToAi: () -> Unit,
-    onNavigateToOtherServices: () -> Unit // НОВЫЙ КОЛЛБЕК
-) {
+    onNavigateToOtherServices: () -> Unit,
+    userName: String = "Алтын"
+){
     val scrollState = rememberScrollState()
+
+    val services = remember {
+        listOf(
+            ServiceItem("Удаление зуба", Icons.Default.Build) { onNavigateToClinics("Удаление зуба") },
+            ServiceItem("Протезирование", Icons.Default.Face) { onNavigateToClinics("Протезирование") },
+            ServiceItem("Пломба / Канал", Icons.Default.CheckCircle) { onNavigateToClinics("Пломба / Канал") },
+            ServiceItem("Имплант", Icons.Default.Star) { onNavigateToClinics("Имплант") },
+            ServiceItem("AI анализ", Icons.Default.Favorite) { onNavigateToAi() },
+            ServiceItem("Брекеты", Icons.Default.Face) { onNavigateToClinics("Брекеты") }
+        )
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundGray)
             .verticalScroll(scrollState)
-            .padding(top = 16.dp, bottom = 16.dp)
+            .padding(vertical = 16.dp)
     ) {
-        // Хедер "Привет Алтын"
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -55,12 +78,12 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Привет Алтын 👋",
+                text = "Привет $userName 👋",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
-            // Аватарка-заглушка
+
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -71,7 +94,6 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Голубой Баннер
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -80,58 +102,55 @@ fun HomeScreen(
                 .background(PrimaryBlue)
                 .padding(24.dp)
         ) {
-            Column {
-                Text(
-                    text = "Пожалуйста,\nвыберите область, в\nкоторой вам\nнеобходима помощь.",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+            Text(
+                text = "Пожалуйста,\nвыберите область, в\nкоторой вам\nнеобходима помощь.",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Секция "У меня есть" (Сетка услуг)
         Text(
             text = "У меня есть",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
+            color = Color.Black,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        val services = listOf(
-            ServiceItem("Удаление зуба", Icons.Default.Build, onNavigateToClinics),
-            ServiceItem("Протезирование", Icons.Default.Face, onNavigateToClinics),
-            ServiceItem("Пломба / Канал", Icons.Default.CheckCircle, onNavigateToClinics),
-            ServiceItem("Имплант", Icons.Default.Star, onNavigateToClinics),
-            ServiceItem("Сломанный зуб", Icons.Default.Favorite, onNavigateToAi),
-            ServiceItem("Брекеты", Icons.Default.Face, onNavigateToClinics)
-        )
+        Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+            services.chunked(3).forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowItems.forEach { service ->
+                        ServiceCard(
+                            service = service,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(240.dp)
-                .padding(horizontal = 8.dp),
-            userScrollEnabled = false
-        ) {
-            items(services) { service ->
-                ServiceCard(service)
+                    repeat(3 - rowItems.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // ОБНОВЛЕННАЯ КНОПКА ПОИСКА ДОПОЛНИТЕЛЬНЫХ УСЛУГ
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .clickable { onNavigateToOtherServices() }, // ИСПОЛЬЗУЕМ НОВЫЙ КОЛЛБЕК
+                .clickable { onNavigateToOtherServices() },
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -140,9 +159,20 @@ fun HomeScreen(
                 modifier = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Search, contentDescription = "Search", tint = PrimaryBlue)
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = PrimaryBlue
+                )
+
                 Spacer(modifier = Modifier.width(12.dp))
-                Text("Поиск других процедур", fontSize = 16.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+
+                Text(
+                    text = "Поиск других процедур",
+                    fontSize = 16.sp,
+                    color = Color.DarkGray,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
 
@@ -150,33 +180,46 @@ fun HomeScreen(
     }
 }
 
-data class ServiceItem(val title: String, val icon: ImageVector, val onClick: () -> Unit)
+data class ServiceItem(
+    val title: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit
+)
 
 @Composable
-fun ServiceCard(service: ServiceItem) {
+fun ServiceCard(
+    service: ServiceItem,
+    modifier: Modifier = Modifier
+) {
     Column(
-        modifier = Modifier
-            .padding(8.dp)
+        modifier = modifier
+            .aspectRatio(1f)
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White)
             .clickable { service.onClick() }
-            .padding(12.dp),
+            .padding(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
+        Spacer(modifier = Modifier.height(4.dp))
+
         Icon(
             imageVector = service.icon,
             contentDescription = service.title,
             tint = PrimaryBlue,
-            modifier = Modifier.size(32.dp)
+            modifier = Modifier.size(30.dp)
         )
-        Spacer(modifier = Modifier.height(8.dp))
+
         Text(
             text = service.title,
-            fontSize = 12.sp,
+            fontSize = 11.sp,
             textAlign = TextAlign.Center,
             color = Color.Black,
-            maxLines = 2
+            fontWeight = FontWeight.Medium,
+            maxLines = 2,
+            lineHeight = 14.sp
         )
+
+        Spacer(modifier = Modifier.height(4.dp))
     }
 }

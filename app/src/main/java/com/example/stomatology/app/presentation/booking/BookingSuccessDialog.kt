@@ -1,14 +1,26 @@
 package com.example.stomatology.app.presentation.booking
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -16,12 +28,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @Composable
 fun BookingSuccessDialog(
-    doctorName: String = "Ажар Пернебекке",
+    doctorName: String,
     onReturnHome: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -38,27 +49,31 @@ fun BookingSuccessDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                // Success Checkmark Icon
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE1F5FE)), // Very light blue
+                        .height(80.dp)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Success",
-                        tint = PrimaryBlue,
-                        modifier = Modifier.size(40.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(Color(0xFFE1F5FE))
+                            .padding(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Success",
+                            tint = PrimaryBlue
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Title
                 Text(
                     text = "Жазба расталды",
                     fontSize = 20.sp,
@@ -68,9 +83,8 @@ fun BookingSuccessDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Description
                 Text(
-                    text = "Сіздің доктор $doctorName жазбаңыз сәтті жоспарланған. Біз сізді күтеміз!",
+                    text = "Сіздің $doctorName дәрігеріне жазбаңыз сәтті жоспарланды. Біз сізді күтеміз!",
                     fontSize = 14.sp,
                     color = Color.Gray,
                     textAlign = TextAlign.Center,
@@ -79,7 +93,6 @@ fun BookingSuccessDialog(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Return Button
                 Button(
                     onClick = onReturnHome,
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
@@ -88,7 +101,11 @@ fun BookingSuccessDialog(
                         .fillMaxWidth()
                         .height(50.dp)
                 ) {
-                    Text("Негізгі экранға оралу", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Негізгі экранға оралу",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }

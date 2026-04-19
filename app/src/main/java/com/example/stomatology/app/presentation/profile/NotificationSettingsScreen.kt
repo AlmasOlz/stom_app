@@ -1,16 +1,32 @@
 package com.example.stomatology.app.presentation.profile
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -18,17 +34,28 @@ import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationSettingsScreen(onBack: () -> Unit) {
+fun NotificationSettingsScreen(
+    onBack: () -> Unit
+) {
     val scrollState = rememberScrollState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Уведомления", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") }
+                title = {
+                    Text(
+                        text = "Уведомления",
+                        fontWeight = FontWeight.Bold
+                    )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
             )
         }
     ) { padding ->
@@ -36,27 +63,24 @@ fun NotificationSettingsScreen(onBack: () -> Unit) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(Color.White)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(16.dp)
         ) {
-            SettingsCategory("Частые")
+            SettingsCategory("Общие")
             SettingsToggleRow("General Notification", true)
             SettingsToggleRow("Sound", false)
             SettingsToggleRow("Vibrate", true)
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            SettingsCategory("System & services update")
+            SettingsCategory("Система")
             SettingsToggleRow("App updates", false)
-            SettingsToggleRow("Bill Reminder", true)
             SettingsToggleRow("Promotion", true)
             SettingsToggleRow("Discount Available", false)
-            SettingsToggleRow("Payment Request", false)
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            SettingsCategory("Others")
+            SettingsCategory("Прочее")
             SettingsToggleRow("New Service Available", false)
             SettingsToggleRow("New Tips Available", true)
         }
@@ -69,31 +93,31 @@ fun SettingsCategory(title: String) {
         text = title,
         fontSize = 16.sp,
         fontWeight = FontWeight.Bold,
-        color = Color.Black,
-        modifier = Modifier.padding(bottom = 16.dp)
+        modifier = Modifier.padding(vertical = 12.dp)
     )
 }
 
 @Composable
-fun SettingsToggleRow(label: String, initialChecked: Boolean) {
-    var checked by remember { mutableStateOf(initialChecked) }
+fun SettingsToggleRow(
+    label: String,
+    initialChecked: Boolean
+) {
+    var checked by rememberSaveable { mutableStateOf(initialChecked) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, fontSize = 14.sp, color = Color.DarkGray)
+        Text(text = label)
+
         Switch(
             checked = checked,
             onCheckedChange = { checked = it },
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = PrimaryBlue,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = Color.LightGray
+                checkedTrackColor = PrimaryBlue
             )
         )
     }

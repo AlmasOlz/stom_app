@@ -1,14 +1,28 @@
 package com.example.stomatology.app.presentation.clinics
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,20 +41,22 @@ fun PromoDetailScreen(
 ) {
     val scrollState = rememberScrollState()
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
-            // Top Image Area
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(280.dp)
-                    .background(Color(0xFFE0E0E0)) // Image Placeholder
+                    .background(Color(0xFFE0E0E0))
             ) {
-                // Back Button Overlay
                 IconButton(
                     onClick = onBack,
                     modifier = Modifier
@@ -48,18 +64,20 @@ fun PromoDetailScreen(
                         .background(Color.Black.copy(alpha = 0.3f), shape = RoundedCornerShape(50))
                         .size(40.dp)
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
                 }
             }
 
-            // Content Area
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .offset(y = (-30).dp) // Pulling it up over the image slightly
+                    .offset(y = (-30).dp)
             ) {
-                // Blue Promo Banner
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -79,7 +97,6 @@ fun PromoDetailScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Text Description
                 Text(
                     text = "Севоран — «золотой стандарт» детской стоматологии. Мы используем оригинальный препарат Севоран, который не вызывает привыкания и полностью выводится из организма сразу после процедуры.\n\nЭто позволяет нам лечить даже самые сложные случаи за один визит, пока ваш герой видит приятные сны.",
                     fontSize = 14.sp,
@@ -91,7 +108,6 @@ fun PromoDetailScreen(
 
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // Book Button
                 Button(
                     onClick = onBookClick,
                     modifier = Modifier
@@ -101,16 +117,19 @@ fun PromoDetailScreen(
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                 ) {
-                    Text("Записаться", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "Записаться",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(80.dp)) // Padding for the FAB
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
 
-        // Floating Action Button (as seen in mockup)
         FloatingActionButton(
-            onClick = { /* TODO: Open quick actions */ },
+            onClick = {},
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 32.dp)
@@ -119,7 +138,11 @@ fun PromoDetailScreen(
             contentColor = Color.White,
             shape = RoundedCornerShape(50)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(32.dp))
+            Icon(
+                Icons.Default.Add,
+                contentDescription = "Add",
+                modifier = Modifier.size(32.dp)
+            )
         }
     }
 }

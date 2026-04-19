@@ -1,19 +1,31 @@
 package com.example.stomatology.app.presentation.clinics
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,27 +37,27 @@ fun LocationPickerScreen(
     onLocationSelected: (String) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        // 1. Map Background (Placeholder)
-        // In production, this would be a GoogleMap composable from the Maps SDK
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFE0E0E0)), // Light gray map placeholder
+                .background(Color(0xFFE0E0E0)),
             contentAlignment = Alignment.Center
         ) {
-            // Simulated Map Pin
             Icon(
                 Icons.Default.LocationOn,
                 contentDescription = "Pin",
                 tint = Color.Red,
                 modifier = Modifier
                     .size(48.dp)
-                    .offset(y = (-24).dp) // Offset to make it look like it's pointing at the center
+                    .offset(y = (-24).dp)
             )
-            Text("Simulated Google Map Area", color = Color.Gray, modifier = Modifier.offset(y = 30.dp))
+            Text(
+                text = "Simulated Google Map Area",
+                color = Color.Gray,
+                modifier = Modifier.offset(y = 30.dp)
+            )
         }
 
-        // 2. Top Bar (Transparent/Overlaid)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -59,11 +71,14 @@ fun LocationPickerScreen(
                     .background(PrimaryBlue, shape = RoundedCornerShape(50))
                     .size(40.dp)
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
             }
         }
 
-        // 3. Bottom Sheet (Confirmation Area)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -87,9 +102,13 @@ fun LocationPickerScreen(
                         Icons.Default.LocationOn,
                         contentDescription = "Current Location",
                         tint = Color.White,
-                        modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                        modifier = Modifier
+                            .size(16.dp)
+                            .padding(top = 2.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+
                     Column {
                         Text(
                             text = "Алатау, 13 ықшам ауданы",
@@ -114,10 +133,15 @@ fun LocationPickerScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Проверить", color = PrimaryBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        text = "Проверить",
+                        color = PrimaryBlue,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp)) // Safe area bottom padding
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }

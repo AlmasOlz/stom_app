@@ -1,45 +1,63 @@
 package com.example.stomatology.app.presentation.profile
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileEditScreen(onBack: () -> Unit) {
+fun ProfileEditScreen(
+    onBack: () -> Unit,
+    onSave: () -> Unit = {}
+) {
     val scrollState = rememberScrollState()
 
-    var fullName by remember { mutableStateOf("Мадиханова Алтынай") }
-    var nickname by remember { mutableStateOf("maddi") }
-    var email by remember { mutableStateOf("youremail@domain.com") }
-    var phone by remember { mutableStateOf("123-456-7890") }
-    var country by remember { mutableStateOf("United States") }
-    var gender by remember { mutableStateOf("Женский") }
-    var address by remember { mutableStateOf("45 New Avenue, New York") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Редактировать профиль", fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+                title = { Text("Редактировать профиль") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                }
             )
         }
     ) { padding ->
@@ -47,43 +65,46 @@ fun ProfileEditScreen(onBack: () -> Unit) {
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(Color.White)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ProfileTextField("Full name", fullName) { fullName = it }
-            ProfileTextField("Nick name", nickname) { nickname = it }
-            ProfileTextField("Email", email) { email = it }
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Имя") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
 
-            // Phone with simulated flag
-            ProfileTextField("Phone number", phone, leadingIcon = "🇺🇸 ") { phone = it }
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Box(modifier = Modifier.weight(1f)) {
-                    ProfileTextField("Страна", country) { country = it }
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    ProfileTextField("Пол", gender) { gender = it }
-                }
-            }
-
-            ProfileTextField("Address", address) { address = it }
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = { Text("Телефон") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { /* TODO: Save Profile to Backend */ onBack() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
+                onClick = {
+                    onSave()
+                    onBack()
+                },
+                modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
             ) {
-                Text("СОХРАНИТЬ", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Сохранить")
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
@@ -99,11 +120,19 @@ fun ProfileTextField(
     TextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label, color = Color.Gray, fontSize = 12.sp) },
-        leadingIcon = leadingIcon?.let { { Text(it, fontSize = 20.sp, modifier = Modifier.padding(start = 8.dp)) } },
+        label = { Text(text = label, color = Color.Gray, fontSize = 12.sp) },
+        leadingIcon = leadingIcon?.let {
+            {
+                Text(
+                    text = it,
+                    fontSize = 20.sp,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+        },
         modifier = Modifier.fillMaxWidth(),
         colors = TextFieldDefaults.colors(
-            unfocusedContainerColor = Color(0xFFE8F4F8), // Light bluish-gray matching mockup
+            unfocusedContainerColor = Color(0xFFE8F4F8),
             focusedContainerColor = Color(0xFFE8F4F8),
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent

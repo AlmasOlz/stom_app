@@ -2,18 +2,43 @@ package com.example.stomatology.app.presentation.recovery
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,8 +47,10 @@ import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecoveryScreen(onBack: () -> Unit) {
-    var showSpecificInstructions by remember { mutableStateOf(false) }
+fun RecoveryScreen(
+    onBack: () -> Unit
+) {
+    var showSpecificInstructions by rememberSaveable { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -31,7 +58,7 @@ fun RecoveryScreen(onBack: () -> Unit) {
             TopAppBar(
                 title = {
                     Text(
-                        "Скорейшего\nвыздоровления! 💪",
+                        text = "Скорейшего\nвыздоровления! 💪",
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF2B3A67),
                         lineHeight = 24.sp
@@ -45,7 +72,11 @@ fun RecoveryScreen(onBack: () -> Unit) {
                             .background(Color.DarkGray, shape = RoundedCornerShape(50))
                             .size(32.dp)
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF8F9FA))
@@ -60,21 +91,18 @@ fun RecoveryScreen(onBack: () -> Unit) {
                 .verticalScroll(scrollState)
                 .padding(16.dp)
         ) {
-            // Hero Banner
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(PrimaryBlue)
+                    .background(PrimaryBlue, RoundedCornerShape(16.dp))
                     .padding(20.dp)
             ) {
                 Text(
-                    text = "Ознакомьтесь с\nпослеоперационн\nыми инструкциями\nздесь:",
+                    text = "Ознакомьтесь с\nпослеоперационными\nинструкциями\nздесь:",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
-                // Note: Add Doctor Image placeholder alignment here in production
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -96,7 +124,6 @@ fun RecoveryScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Toggle Button at bottom
             Button(
                 onClick = { showSpecificInstructions = !showSpecificInstructions },
                 modifier = Modifier
@@ -106,16 +133,27 @@ fun RecoveryScreen(onBack: () -> Unit) {
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.List, contentDescription = "List", modifier = Modifier.size(32.dp))
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Icon(
+                        imageVector = Icons.Default.List,
+                        contentDescription = "List",
+                        modifier = Modifier.size(32.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(0.dp).padding(horizontal = 8.dp))
+
                     Column {
                         Text(
                             text = if (showSpecificInstructions) "General Instructions" else "Specific Instructions",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
+                            fontSize = 18.sp,
+                            color = Color.White
                         )
                         Text(
-                            text = if (showSpecificInstructions) "A comprehensive list of daily Do's and Dont's" else "Step-by-step instructions to help you",
+                            text = if (showSpecificInstructions) {
+                                "A comprehensive list of daily Do's and Dont's"
+                            } else {
+                                "Step-by-step instructions to help you"
+                            },
                             fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -129,7 +167,6 @@ fun RecoveryScreen(onBack: () -> Unit) {
 @Composable
 fun GeneralInstructionsList() {
     Column {
-        // Do's
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -138,10 +175,17 @@ fun GeneralInstructionsList() {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Surface(color = Color(0xFF4CAF50), shape = RoundedCornerShape(4.dp)) {
-                    Text("Do's", color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 12.sp)
+                    Text(
+                        text = "Do's",
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 12.sp
+                    )
                 }
+
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("- Eat soft cold foods for atleast 2 days.", color = Color(0xFF4CAF50))
+
+                Text("- Eat soft cold foods for at least 2 days.", color = Color(0xFF4CAF50))
                 Text("- Avoid hot, spicy, hard foods.", color = Color(0xFF4CAF50))
                 Text("- Consume tea, coffee at room temperature.", color = Color(0xFF4CAF50))
                 Text("- Take medicines as prescribed by your doctor.", color = Color(0xFF4CAF50))
@@ -150,7 +194,6 @@ fun GeneralInstructionsList() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Dont's
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -159,9 +202,16 @@ fun GeneralInstructionsList() {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Surface(color = Color(0xFFF44336), shape = RoundedCornerShape(4.dp)) {
-                    Text("Dont's", color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 12.sp)
+                    Text(
+                        text = "Dont's",
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 12.sp
+                    )
                 }
+
                 Spacer(modifier = Modifier.height(8.dp))
+
                 Text("- Do not smoke/drink alcohol for 48 hours post extraction.", color = Color(0xFFF44336))
                 Text("- Do not spit outside for 2 days and do not use straw for first 24 hours.", color = Color(0xFFF44336))
             }
@@ -175,7 +225,7 @@ fun SpecificInstructionsList() {
         "Bite firmly on the gauze placed in your mouth for at least 45-60 minutes and then gently remove the pack." to "Today 8:00 AM",
         "After going home apply ice pack on the area in 15-20 minute intervals till nighttime." to "Tomorrow 9:00 AM",
         "After removing the pack take one dosage of medicines prescribed." to null,
-        "After 24 hours, gargle in that area with luke warm water and salt atleast 3-4 times a day." to null
+        "After 24 hours, gargle in that area with lukewarm water and salt at least 3-4 times a day." to null
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -191,17 +241,42 @@ fun SpecificInstructionsList() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Surface(color = PrimaryBlue, shape = RoundedCornerShape(12.dp)) {
-                            Text("Step ${index + 1}", color = Color.White, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Surface(
+                            color = PrimaryBlue,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = "Step ${index + 1}",
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(instruction, color = Color.DarkGray, fontSize = 14.sp)
+
+                        Text(
+                            text = instruction,
+                            color = Color.DarkGray,
+                            fontSize = 14.sp
+                        )
+
                         if (time != null) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(time, color = if (time.contains("Today")) Color.Red else Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = time,
+                                color = if (time.contains("Today")) Color.Red else Color(0xFF2E7D32),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
-                    RadioButton(selected = false, onClick = { /* TODO */ })
+
+                    RadioButton(
+                        selected = false,
+                        onClick = {}
+                    )
                 }
             }
         }

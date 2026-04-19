@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stomatology.app.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -14,38 +13,67 @@ class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
-    val authState: StateFlow<AuthState> = _authState
+    private val _state = MutableStateFlow(AuthUiState())
+    val state: StateFlow<AuthUiState> = _state
 
-    fun login(email: String, pass: String) {
+    // --- INPUTS ---
+    fun onEmailChange(value: String) {
+        _state.value = _state.value.copy(email = value)
+    }
+
+    fun onPasswordChange(value: String) {
+        _state.value = _state.value.copy(password = value)
+    }
+
+    // --- LOGIN ---
+    fun login() {
+        val email = _state.value.email
+        val pass = _state.value.password
+
+        if (email.isBlank() || pass.isBlank()) {
+            _state.value = _state.value.copy(error = "Fill all fields")
+            return
+        }
+
         viewModelScope.launch {
-            _authState.value = AuthState.Loading
+            _state.value = _state.value.copy(isLoading = true, error = null)
+
             val result = authRepository.signInWithEmail(email, pass)
+
             if (result.isSuccess) {
-                _authState.value = AuthState.Success
+                _state.value = AuthUiState(isSuccess = true)
             } else {
-                _authState.value = AuthState.Error(result.exceptionOrNull()?.message ?: "Login failed")
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = result.exceptionOrNull()?.message ?: "Login failed"
+                )
             }
         }
     }
 
-    // НОВАЯ ФУНКЦИЯ ДЛЯ РЕГИСТРАЦИИ
-    fun signUp(email: String, pass: String) {
+    // --- REGISTER ---
+    fun signUp() {
+        val email = _state.value.email
+        val pass = _state.value.password
+
+        if (email.isBlank() || pass.isBlank()) {
+            _state.value = _state.value.copy(error = "Fill all fields")
+            return
+        }
+
         viewModelScope.launch {
-            _authState.value = AuthState.Loading
+            _state.value = _state.value.copy(isLoading = true, error = null)
+
             val result = authRepository.signUpWithEmail(email, pass)
+
             if (result.isSuccess) {
-                _authState.value = AuthState.Success
+                _state.value = AuthUiState(isSuccess = true)
             } else {
-                _authState.value = AuthState.Error(result.exceptionOrNull()?.message ?: "Registration failed")
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    error = result.exceptionOrNull()?.message ?: "Registration failed"
+                )
             }
         }
     }
-}
-
-sealed class AuthState {
-    object Idle : AuthState()
-    object Loading : AuthState()
-    object Success : AuthState()
-    data class Error(val error: String) : AuthState()
 }

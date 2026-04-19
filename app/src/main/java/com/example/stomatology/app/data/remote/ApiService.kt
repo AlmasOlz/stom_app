@@ -7,17 +7,26 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 
 data class AiResponseDto(
-    @SerializedName("status") val status: String?,
-    @SerializedName("teeth_count") val teethCount: Int?,
-    @SerializedName("teeth_data") val teethData: List<ToothDataDto>? // ОСЫ ЖОЛ ӨТЕ МАҢЫЗДЫ!
+    @SerializedName("status")
+    val status: String?,
+
+    @SerializedName("teeth_count")
+    val teethCount: Int?,
+
+    @SerializedName("teeth_data")
+    val teethData: List<ToothDataDto>?
 )
 
 data class ToothDataDto(
-    @SerializedName("tooth_name") val toothName: String?,
-    @SerializedName("conditions") val conditions: List<String>?
+    @SerializedName("tooth_name")
+    val toothName: String?,
+
+    @SerializedName("conditions")
+    val conditions: List<String>?
 )
 
 interface ApiService {
+
     @Multipart
     @POST("/analyze")
     suspend fun analyzeXray(

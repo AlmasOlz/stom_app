@@ -1,10 +1,10 @@
 package com.example.stomatology.app.di
 
+import com.example.stomatology.app.data.repository.AuthRepositoryImpl
+import com.example.stomatology.app.domain.repository.AuthRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import com.example.stomatology.app.data.repository.AuthRepositoryImpl
-import com.example.stomatology.app.domain.repository.AuthRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -14,17 +14,19 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class AuthBindingModule {
+abstract class AuthRepositoryModule {
+
     @Binds
     @Singleton
     abstract fun bindAuthRepository(
-        authRepositoryImpl: AuthRepositoryImpl
+        impl: AuthRepositoryImpl
     ): AuthRepository
 }
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AuthModule {
+
     @Provides
     @Singleton
     fun provideFirebaseAuth(): FirebaseAuth = Firebase.auth

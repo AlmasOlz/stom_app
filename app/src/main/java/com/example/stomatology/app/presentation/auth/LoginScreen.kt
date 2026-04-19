@@ -30,18 +30,22 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    val authState by viewModel.authState.collectAsState()
 
-    LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
+    val state by viewModel.state.collectAsState()
+
+    // ✅ SUCCESS
+    LaunchedEffect(state.isSuccess) {
+        if (state.isSuccess) {
             onLoginSuccess()
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        // Синяя волна на заднем фоне сверху
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+
         TopWaveBackground()
 
         Column(
@@ -50,14 +54,15 @@ fun LoginScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.Start
         ) {
+
             Spacer(modifier = Modifier.height(100.dp))
 
             Text(
                 text = "Login",
                 fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
+                fontWeight = FontWeight.Bold
             )
+
             Text(
                 text = "Login with",
                 fontSize = 14.sp,
@@ -65,99 +70,98 @@ fun LoginScreen(
                 modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
             )
 
-            // Кнопки соцсетей (заглушки G и F)
+            // Social buttons
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                SocialButton(text = "G", color = Color.Red)
-                SocialButton(text = "f", color = Color.Blue)
+                SocialButton("G", Color.Red)
+                SocialButton("f", Color.Blue)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Поля ввода
+            // EMAIL
             Text("Email", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+
             Spacer(modifier = Modifier.height(8.dp))
+
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
+                value = state.email,
+                onValueChange = viewModel::onEmailChange,
                 placeholder = { Text("example@gmail.com") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.LightGray,
-                    focusedIndicatorColor = PrimaryBlue
-                )
+                singleLine = true
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // PASSWORD
             Text("Password", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+
             Spacer(modifier = Modifier.height(8.dp))
+
             OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
+                value = state.password,
+                onValueChange = viewModel::onPasswordChange,
                 placeholder = { Text("Enter password") },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(12.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.LightGray,
-                    focusedIndicatorColor = PrimaryBlue
-                )
+                singleLine = true
             )
 
-            // Forgot Password
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                TextButton(onClick = { /* TODO: Forgot password */ }) {
-                    Text("Forgot Password?", color = PrimaryBlue, fontSize = 12.sp)
+            // Forgot
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                TextButton(onClick = { }) {
+                    Text("Forgot Password?", color = PrimaryBlue)
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Сообщения об ошибке
-            if (authState is AuthState.Error) {
+            // ❌ ERROR
+            state.error?.let {
                 Text(
-                    text = (authState as AuthState.Error).error,
+                    text = it,
                     color = MaterialTheme.colorScheme.error,
-                    fontSize = 14.sp,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 8.dp)
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
             }
 
-            // Главная кнопка логина
-            if (authState is AuthState.Loading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            // 🔄 LOADING / BUTTON
+            if (state.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             } else {
                 Button(
-                    onClick = { viewModel.login(email, password) },
+                    onClick = { viewModel.login() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                 ) {
-                    Text("Войти", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("Войти", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
-            // Ссылка на регистрацию
+            // NAVIGATION
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 24.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Don't have an account? ", color = Color.Gray, fontSize = 14.sp)
+                Text("Don't have an account? ", color = Color.Gray)
+
                 Text(
                     text = "Create an account",
                     color = PrimaryBlue,
-                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable { onNavigateToRegister() }
                 )
@@ -172,8 +176,7 @@ fun SocialButton(text: String, color: Color) {
         modifier = Modifier
             .size(50.dp)
             .border(1.dp, Color.LightGray, CircleShape)
-            .clip(CircleShape)
-            .clickable { /* TODO: Social Login */ },
+            .clip(CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Text(text = text, color = color, fontSize = 20.sp, fontWeight = FontWeight.Bold)

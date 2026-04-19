@@ -1,4 +1,4 @@
-package com.example.stomatology.app // <-- Убедись, что пакет здесь правильный
+package com.example.stomatology.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation() // Вызов должен быть строго внутри Surface и Theme
+                    AppNavigation()
                 }
             }
         }

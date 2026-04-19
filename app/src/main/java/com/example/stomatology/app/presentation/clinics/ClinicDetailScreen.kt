@@ -1,152 +1,193 @@
 package com.example.stomatology.app.presentation.clinics
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClinicDetailScreen(
-    clinicName: String,
+    clinicId: String,
+    serviceName: String,
     onBack: () -> Unit,
-    onBookClick: () -> Unit
+    onBookClick: (String, String) -> Unit,
+    viewModel: ClinicViewModel = hiltViewModel()
 ) {
-    val scrollState = rememberScrollState()
+    val state by viewModel.state.collectAsState()
+    val clinic = state.clinics.find { it.id == clinicId }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .verticalScroll(scrollState)
-    ) {
-        // Top Cover Image Area
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp)
-                .background(Color.LightGray) // Placeholder for actual image
-        ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.padding(top = 40.dp, start = 16.dp)
-            ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-            }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("О клинике") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
         }
-
-        // Content Area (Overlapping the image slightly)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = (-40).dp)
-                .padding(horizontal = 24.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                // Floating Logo Box
+    ) { padding ->
+        when {
+            state.isLoading -> {
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .padding(8.dp),
+                        .padding(padding)
+                        .fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFE1F5FE), RoundedCornerShape(8.dp)))
-                }
-
-                // Action Icons (Share, Edit, Heart)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(bottom = 8.dp)) {
-                    Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.DarkGray)
-                    Icon(Icons.Default.Edit, contentDescription = "Review", tint = Color.DarkGray)
-                    Icon(Icons.Default.FavoriteBorder, contentDescription = "Favorite", tint = Color.DarkGray)
+                    CircularProgressIndicator()
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = clinicName, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "Ваше здоровье в надежных руках эксперта", fontSize = 14.sp, color = PrimaryBlue.copy(alpha = 0.8f))
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Mini Map Placeholder
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFEEEEEE)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Map Image Placeholder", color = Color.Gray)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Address & Phone
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, contentDescription = "Location", tint = PrimaryBlue, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text("Астана, Жиембет жырау 2", fontSize = 14.sp, color = PrimaryBlue)
-                    Text("Алматы", fontSize = 10.sp, color = Color.Gray)
+            clinic == null -> {
+                Box(
+                    modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Клиника не найдена")
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Call, contentDescription = "Phone", tint = PrimaryBlue, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("+7 (747) 473 45 26", fontSize = 14.sp, color = Color.DarkGray)
+
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = clinic.name,
+                                fontSize = 22.sp,
+                                color = Color.Black
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFA000)
+                                )
+                                Spacer(modifier = Modifier.size(4.dp))
+                                Text("${clinic.rating} (${clinic.reviews} отзывов)")
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = PrimaryBlue
+                                )
+                                Spacer(modifier = Modifier.size(6.dp))
+                                Text(clinic.address)
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text(
+                                text = "Услуга: $serviceName",
+                                fontSize = 16.sp,
+                                color = PrimaryBlue
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "Цена от: ${clinic.priceFrom} ₸",
+                                fontSize = 18.sp,
+                                color = Color.Black
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text(
+                                text = clinic.description,
+                                fontSize = 14.sp,
+                                color = Color.DarkGray,
+                                lineHeight = 20.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Text(
+                                text = "Доступные услуги:",
+                                fontSize = 15.sp,
+                                color = Color.Black
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            clinic.services.forEach {
+                                Text("• $it", color = Color.Gray)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = { onBookClick(clinic.id, serviceName) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    ) {
+                        Text("Записаться")
+                    }
+                }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(text = "О клинике", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Более 20+ Опытных врачей,\nСтоматология в центре города\nКачественные аппараты",
-                fontSize = 14.sp,
-                color = Color.Gray,
-                lineHeight = 20.sp
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            Button(
-                onClick = onBookClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-            ) {
-                Text("Записаться", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

@@ -8,15 +8,17 @@ import androidx.compose.ui.graphics.Color
 private val LightColors = lightColorScheme(
     primary = PrimaryBlue,
     secondary = SecondaryBlue,
-    background = Color.White,
-    surface = Color.White,
-    onPrimary = Color.White,
+    background = White,
+    surface = White,
+    onPrimary = White,
     onBackground = TextDark,
     onSurface = TextDark
 )
 
 @Composable
-fun StomatologyTheme(content: @Composable () -> Unit) {
+fun StomatologyTheme(
+    content: @Composable () -> Unit
+) {
     MaterialTheme(
         colorScheme = LightColors,
         content = content

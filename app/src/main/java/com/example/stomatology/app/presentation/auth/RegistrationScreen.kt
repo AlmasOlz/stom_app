@@ -28,20 +28,23 @@ fun RegistrationScreen(
     onNavigateToLogin: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    val authState by viewModel.authState.collectAsState()
+    val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
+    // 👉 УСПЕХ
+    LaunchedEffect(state.isSuccess) {
+        if (state.isSuccess) {
             onRegisterSuccess()
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        // Переиспользуем волну из LoginScreen
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+
+        // 🌊 Верхний фон
         TopWaveBackground()
 
         Column(
@@ -51,6 +54,7 @@ fun RegistrationScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.Start
         ) {
+
             Spacer(modifier = Modifier.height(100.dp))
 
             Text(
@@ -59,6 +63,7 @@ fun RegistrationScreen(
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
+
             Text(
                 text = "Sign up with",
                 fontSize = 14.sp,
@@ -66,7 +71,7 @@ fun RegistrationScreen(
                 modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
             )
 
-            // Кнопки соцсетей (переиспользуем из LoginScreen)
+            // Соц кнопки (заглушки)
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 SocialButton(text = "G", color = Color.Red)
                 SocialButton(text = "f", color = Color.Blue)
@@ -74,35 +79,19 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Поле Имя
-            Text("Name", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                placeholder = { Text("Your name") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.LightGray,
-                    focusedIndicatorColor = PrimaryBlue
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Поле Email
+            // EMAIL
             Text("Email", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+
             Spacer(modifier = Modifier.height(8.dp))
+
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
+                value = state.email,
+                onValueChange = viewModel::onEmailChange,
                 placeholder = { Text("example@gmail.com") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                singleLine = true,
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = Color.Transparent,
                     focusedContainerColor = Color.Transparent,
@@ -113,17 +102,20 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Поле Пароль
+            // PASSWORD
             Text("Password", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+
             Spacer(modifier = Modifier.height(8.dp))
+
             OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
+                value = state.password,
+                onValueChange = viewModel::onPasswordChange,
                 placeholder = { Text("Enter password") },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(12.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                singleLine = true,
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = Color.Transparent,
                     focusedContainerColor = Color.Transparent,
@@ -134,59 +126,72 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Соглашение Terms & Privacy
+            // TERMS
             Text(
                 text = "Creating an account means you're okay with our Terms of Service and our Privacy Policy",
                 fontSize = 12.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Ошибки
-            if (authState is AuthState.Error) {
+            // ❌ ERROR
+            state.error?.let {
                 Text(
-                    text = (authState as AuthState.Error).error,
+                    text = it,
                     color = MaterialTheme.colorScheme.error,
                     fontSize = 14.sp,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 8.dp)
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 8.dp)
                 )
             }
 
-            // Кнопка регистрации
-            if (authState is AuthState.Loading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            // 🔄 LOADING / BUTTON
+            if (state.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             } else {
                 Button(
-                    onClick = { viewModel.signUp(email, password) },
+                    onClick = { viewModel.signUp() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                 ) {
-                    Text("Создать аккаунт", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(
+                        "Создать аккаунт",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
             }
 
-            // Переход обратно на логин
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ПЕРЕХОД НА LOGIN
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 24.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Already have an account? ", color = Color.Gray, fontSize = 14.sp)
+                Text("Already have an account? ", color = Color.Gray)
+
                 Text(
                     text = "Sign in",
                     color = PrimaryBlue,
-                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable { onNavigateToLogin() }
                 )
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
