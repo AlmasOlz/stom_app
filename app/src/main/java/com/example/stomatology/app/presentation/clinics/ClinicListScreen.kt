@@ -2,41 +2,28 @@ package com.example.stomatology.app.presentation.clinics
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,20 +34,31 @@ fun ClinicListScreen(
     viewModel: ClinicViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
 
+    // Сүзу логикасы: қызметі бойынша + іздеу жолағы бойынша
     val filteredClinics = state.clinics.filter { clinic ->
-        serviceName.isBlank() || clinic.services.any { it.equals(serviceName, ignoreCase = true) }
+        val matchesService = serviceName.isBlank() ||
+                clinic.services.any { it.equals(serviceName, ignoreCase = true) }
+        val matchesSearch = clinic.name.contains(searchQuery, ignoreCase = true) ||
+                clinic.address.contains(searchQuery, ignoreCase = true)
+        matchesService && matchesSearch
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = if (serviceName.isBlank()) "Стоматологии" else "Стоматологии: $serviceName",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Column {
+                        Text(
+                            text = if (serviceName.isBlank()) "Все стоматологии" else serviceName,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (serviceName.isNotBlank()) {
+                            Text("Найдено: ${filteredClinics.size}", fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -71,68 +69,55 @@ fun ClinicListScreen(
             )
         }
     ) { padding ->
-        when {
-            state.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(Color(0xFFF8F9FA)) // Ашық сұр фон (карточкалар жақсы көрінуі үшін)
+        ) {
+            // 1. Іздеу жолағы (Search Bar)
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                placeholder = { Text("Поиск клиники или адреса...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryBlue) },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedBorderColor = PrimaryBlue
+                ),
+                singleLine = true
+            )
 
-            state.error != null -> {
-                Box(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = state.error ?: "Unknown error",
-                        color = Color.Red
-                    )
+            if (state.isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = PrimaryBlue)
                 }
-            }
-
-            filteredClinics.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Нет клиник для услуги: $serviceName",
-                        color = Color.Gray
-                    )
+            } else if (filteredClinics.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("К сожалению, ничего не найдено", color = Color.Gray)
                 }
-            }
-
-            else -> {
+            } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize()
-                        .background(Color.White)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
-
                     items(filteredClinics) { clinic ->
-                        ClinicListItem(
+                        ClinicCardItem(
                             name = clinic.name,
                             address = clinic.address,
                             rating = clinic.rating,
                             reviews = clinic.reviews,
+                            price = clinic.priceFrom,
+                            imageUrl = clinic.imageUrl,
                             onClick = { onClinicClick(clinic.id) }
                         )
                     }
-
-                    item { Spacer(modifier = Modifier.height(24.dp)) }
                 }
             }
         }
@@ -140,67 +125,105 @@ fun ClinicListScreen(
 }
 
 @Composable
-fun ClinicListItem(
+fun ClinicCardItem(
     name: String,
     address: String,
     rating: Double,
     reviews: Int,
+    price: Int,
+    imageUrl: String,
     onClick: () -> Unit
 ) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp)
             .clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = name,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.Black
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Клиника суреті (Coil)
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = name,
+                modifier = Modifier
+                    .size(90.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFE1F5FE)),
+                contentScale = ContentScale.Crop
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = String.format("%.1f", rating),
-                    fontSize = 12.sp,
-                    color = Color.DarkGray
+                    text = name,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
 
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Star",
-                    tint = Color(0xFFFFA000),
-                    modifier = Modifier
-                        .size(14.dp)
-                        .padding(horizontal = 2.dp)
-                )
+                Spacer(modifier = Modifier.height(4.dp))
 
+                // Рейтинг пен пікірлер
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFA000),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "$rating",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "($reviews отзывов)",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Мекенжай
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = PrimaryBlue,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = address,
+                        fontSize = 12.sp,
+                        color = Color.DarkGray,
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Баға белгісі
                 Text(
-                    text = "$reviews отзывов",
-                    fontSize = 12.sp,
-                    color = Color.Gray
+                    text = "от $price ₸",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = PrimaryBlue
                 )
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = address,
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
         }
-
-        Box(
-            modifier = Modifier
-                .size(70.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFFE1F5FE))
-        )
     }
 }

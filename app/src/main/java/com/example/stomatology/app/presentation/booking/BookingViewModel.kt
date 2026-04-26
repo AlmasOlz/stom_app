@@ -25,7 +25,12 @@ data class BookingUiState(
     val isLoading: Boolean = false,
     val isBooked: Boolean = false,
     val showSuccessDialog: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val availableTimeSlots: List<String> = emptyList(),
+    val showDatePicker: Boolean = false,
+    val showTimePicker: Boolean = false,
+    val doctorList: List<String> = listOf("Арман Серікұлы", "Әлия Маратқызы", "Берік Асқарұлы", "Марат Саматұлы"),
+    val isDoctorMenuExpanded: Boolean = false
 )
 
 @HiltViewModel
@@ -47,7 +52,16 @@ class BookingViewModel @Inject constructor(
             }
         }
     }
+    fun onShowDatePicker(show: Boolean) {
+        _uiState.update { it.copy(showDatePicker = show) }
+    }
+    fun onDoctorMenuExpandedChange(expanded: Boolean) {
+        _uiState.update { it.copy(isDoctorMenuExpanded = expanded) }
+    }
 
+    fun onShowTimePicker(show: Boolean) {
+        _uiState.update { it.copy(showTimePicker = show) }
+    }
     fun onDateSelected(date: String) {
         _uiState.update { it.copy(selectedDate = date, error = null) }
     }

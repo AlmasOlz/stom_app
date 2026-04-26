@@ -47,6 +47,7 @@ android {
 }
 
 dependencies {
+    implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -59,6 +60,16 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
 
     implementation(libs.androidx.navigation.compose)
+    dependencies {
+        // Барлық материалдық иконкалар жинағы (ішінде MyLocation бар)
+        implementation("androidx.compose.material:material-icons-extended:1.7.0")
+    }
+    dependencies {
+        implementation("io.coil-kt:coil-compose:2.5.0")
+    }
+    dependencies {
+        implementation("androidx.compose.material3:material3:1.2.0") // Немесе ең соңғы нұсқасы
+    }
 
     // Hilt
     implementation(libs.hilt.android)
