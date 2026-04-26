@@ -20,6 +20,8 @@ data class AiResponseDto(
 data class ToothDataDto(
     @SerializedName("tooth_name")
     val toothName: String?,
+    @SerializedName("state")
+    val state: String?,
 
     @SerializedName("conditions")
     val conditions: List<String>?

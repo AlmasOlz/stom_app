@@ -8,6 +8,7 @@ import com.example.stomatology.app.data.remote.ApiService
 import com.example.stomatology.app.domain.model.AiAnalysisResult
 import com.example.stomatology.app.domain.model.Clinic
 import com.example.stomatology.app.domain.model.Finding
+import com.example.stomatology.app.domain.model.ToothDetectionState
 import com.example.stomatology.app.domain.repository.AppRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -18,10 +19,58 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import javax.inject.Inject
 
+private val ALL_TEETH = listOf(
+    "LL1", "LL2", "LL3", "LL4", "LL5", "LL6", "LL7", "LL8",
+    "LU1", "LU2", "LU3", "LU4", "LU5", "LU6", "LU7", "LU8",
+    "RL1", "RL2", "RL3", "RL4", "RL5", "RL6", "RL7", "RL8",
+    "RU1", "RU2", "RU3", "RU4", "RU5", "RU6", "RU7", "RU8",
+)
+
 class AppRepositoryImpl @Inject constructor(
     private val clinicDao: ClinicDao,
     private val apiService: ApiService
 ) : AppRepository {
+
+    override suspend fun analyzeImage(file: File): Resource<AiAnalysisResult> {
+        return try {
+            val requestBody = file.asRequestBody("image/*".toMediaTypeOrNull())
+            val multipart = MultipartBody.Part.createFormData("file", file.name, requestBody)
+
+            val response = apiService.analyzeXray(multipart)
+
+            val toothMap: Map<String, Finding> = response.teethData
+                ?.mapNotNull { dto ->
+                    val name = dto.toothName ?: return@mapNotNull null
+                    name to Finding(
+                        toothClass = name,
+                        state = ToothDetectionState.fromString(dto.state),
+                        conditions = dto.conditions.orEmpty()
+                    )
+                }
+                ?.toMap()
+                ?: emptyMap()
+
+            val findings: List<Finding> = ALL_TEETH.map { toothCode ->
+                toothMap[toothCode] ?: Finding(
+                    toothClass = toothCode,
+                    state = ToothDetectionState.UNKNOWN,
+                    conditions = emptyList()
+                )
+            }
+
+            val result = AiAnalysisResult(
+                teethCount = response.teethCount ?: 0,
+                findings = findings
+            )
+
+            Resource.Success(result)
+        } catch (e: Exception) {
+            Resource.Error(
+                message = e.localizedMessage ?: "Failed to analyze image",
+                throwable = e
+            )
+        }
+    }
 
     override fun getClinics(): Flow<Resource<List<Clinic>>> = flow {
         emit(Resource.Loading)
@@ -88,34 +137,6 @@ class AppRepositoryImpl @Inject constructor(
                         description = "Уютная клиника для лечения и ортодонтии."
                     )
                 )
-            )
-        }
-    }
-
-    override suspend fun analyzeImage(file: File): Resource<AiAnalysisResult> {
-        return try {
-            val requestFile = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
-            val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
-
-            val response = apiService.analyzeXray(body)
-
-            val findings = response.teethData?.map { dto ->
-                Finding(
-                    toothClass = dto.toothName.orEmpty(),
-                    conditions = dto.conditions ?: emptyList()
-                )
-            } ?: emptyList()
-
-            Resource.Success(
-                AiAnalysisResult(
-                    teethCount = response.teethCount ?: 0,
-                    findings = findings
-                )
-            )
-        } catch (e: Exception) {
-            Resource.Error(
-                message = e.message ?: "Failed to analyze image",
-                throwable = e
             )
         }
     }

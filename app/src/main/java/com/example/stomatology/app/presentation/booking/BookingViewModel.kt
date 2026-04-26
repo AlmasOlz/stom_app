@@ -3,6 +3,7 @@ package com.example.stomatology.app.presentation.booking
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stomatology.app.domain.model.Appointment
+import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,6 +19,7 @@ data class BookingUiState(
     val clinicId: String = "",
     val selectedDate: String = "",
     val selectedTime: String = "",
+    val doctorId: String = "",
     val doctorName: String = "",
     val clinicName: String = "",
     val direction: String = "",
@@ -70,6 +72,16 @@ class BookingViewModel @Inject constructor(
         _uiState.update { it.copy(selectedTime = time, error = null) }
     }
 
+    fun onDoctorSelected(doctorId: String, doctorName: String) {
+        _uiState.update {
+            it.copy(
+                doctorId = doctorId,
+                doctorName = doctorName,
+                error = null
+            )
+        }
+    }
+
     fun onDoctorNameChange(value: String) {
         _uiState.update { it.copy(doctorName = value, error = null) }
     }
@@ -112,8 +124,10 @@ class BookingViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            val userId = auth.currentUser?.uid
-            if (userId == null) {
+            val currentUser = auth.currentUser
+            val patientId = currentUser?.uid
+
+            if (patientId == null) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -125,11 +139,20 @@ class BookingViewModel @Inject constructor(
 
             val appointment = Appointment(
                 id = UUID.randomUUID().toString(),
-                userId = userId,
+                patientId = patientId,
+                patientName = currentUser.displayName ?: "",
+                patientPhone = currentUser.phoneNumber ?: "",
                 clinicId = state.clinicId,
+                clinicName = state.clinicName.ifBlank { "OneDent" },
+                doctorId = state.doctorId,
                 doctorName = state.doctorName,
+                service = state.direction,
                 date = state.selectedDate,
-                time = state.selectedTime
+                time = state.selectedTime,
+                duration = state.duration,
+                status = AppointmentStatus.PENDING,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
             )
 
             try {
