@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+<<<<<<< HEAD
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -15,7 +16,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+=======
+import androidx.compose.material3.*
+>>>>>>> origin/feature/lesson-page
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,11 +42,14 @@ import com.example.stomatology.app.presentation.doctor_dashboard.DoctorAppointme
 import com.example.stomatology.app.presentation.doctor_dashboard.DoctorDashboardScreen
 import com.example.stomatology.app.presentation.doctor_dashboard.DoctorDashboardViewModel
 import com.example.stomatology.app.presentation.home.HomeScreen
+import com.example.stomatology.app.presentation.education.LessonScreen
+import com.example.stomatology.app.presentation.education.InstructionsScreen // ЖАҢА ИМПОРТ
 import com.example.stomatology.app.presentation.notifications.NotificationHistoryScreen
 import com.example.stomatology.app.presentation.profile.ProfileScreen
 import com.example.stomatology.app.presentation.records.MyRecordsScreen
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 import com.example.stomatology.app.presentation.tracking.TrackingScreen
+import com.example.stomatology.app.presentation.reminders.RemindersScreen
 
 sealed class BottomNavItem(
     val route: String,
@@ -144,6 +152,10 @@ fun AppNavigation() {
                 )
             }
 
+<<<<<<< HEAD
+=======
+            // --- HOME ---
+>>>>>>> origin/feature/lesson-page
             composable(BottomNavItem.Home.route) {
                 HomeScreen(
                     onNavigateToClinics = { service ->
@@ -156,9 +168,51 @@ fun AppNavigation() {
                 )
             }
 
+<<<<<<< HEAD
+=======
+            // --- DASHBOARD / TRACKING ---
+            composable(BottomNavItem.Dashboard.route) {
+                TrackingScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToReminders = {
+                        navController.navigate("daily_reminders")
+                    },
+                    onNavigateToInstructions = { // ЖАҢА ПАРАМЕТР
+                        navController.navigate("instructions")
+                    },
+                    onNavigateToLesson = { lessonType ->
+                        navController.navigate("lesson/$lessonType")
+                    }
+                )
+            }
+
+            // --- INSTRUCTIONS SCREEN (СОВЕТЫ) ---
+            composable("instructions") {
+                InstructionsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // --- DAILY REMINDERS SCREEN ---
+            composable("daily_reminders") {
+                RemindersScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // --- LESSON SCREEN ---
+            composable("lesson/{lessonType}") { backStack ->
+                val lessonType = backStack.arguments?.getString("lessonType") ?: "brushing"
+                LessonScreen(
+                    topic = lessonType,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // --- ҚАЛҒАН БЕТТЕР (Өзгеріссіз қалды) ---
+>>>>>>> origin/feature/lesson-page
             composable("clinics/{serviceName}") { backStack ->
                 val service = backStack.arguments?.getString("serviceName") ?: ""
-
                 ClinicListScreen(
                     serviceName = service,
                     onBack = { navController.popBackStack() },
@@ -171,7 +225,6 @@ fun AppNavigation() {
             composable("clinic_detail/{clinicId}/{serviceName}") { backStack ->
                 val id = backStack.arguments?.getString("clinicId") ?: ""
                 val service = backStack.arguments?.getString("serviceName") ?: ""
-
                 ClinicDetailScreen(
                     clinicId = id,
                     serviceName = service,
@@ -185,7 +238,6 @@ fun AppNavigation() {
             composable("booking/{clinicId}/{serviceName}") { backStack ->
                 val id = backStack.arguments?.getString("clinicId") ?: ""
                 val service = backStack.arguments?.getString("serviceName") ?: ""
-
                 BookingScreen(
                     clinicId = id,
                     serviceName = service,
@@ -196,23 +248,13 @@ fun AppNavigation() {
             }
 
             composable("ai_analysis") {
-                AiAnalysisScreen(
-                    onBack = { navController.popBackStack() }
-                )
+                AiAnalysisScreen(onBack = { navController.popBackStack() })
             }
 
             composable(BottomNavItem.Notifications.route) {
                 NotificationHistoryScreen {
                     navController.popBackStack()
                 }
-            }
-
-            composable(BottomNavItem.Dashboard.route) {
-                TrackingScreen(
-                    onBack = { navController.popBackStack() },
-                    onNavigateToReminders = {},
-                    onNavigateToLesson = {}
-                )
             }
 
             composable(BottomNavItem.Records.route) {
