@@ -17,6 +17,18 @@ class AuthViewModel @Inject constructor(
     private val _state = MutableStateFlow(AuthUiState())
     val state: StateFlow<AuthUiState> = _state
 
+    fun onFirstNameChange(value: String) {
+        _state.value = _state.value.copy(firstName = value)
+    }
+
+    fun onLastNameChange(value: String) {
+        _state.value = _state.value.copy(lastName = value)
+    }
+
+    fun onPhoneChange(value: String) {
+        _state.value = _state.value.copy(phone = value)
+    }
+
     fun onEmailChange(value: String) {
         _state.value = _state.value.copy(email = value)
     }
@@ -38,7 +50,7 @@ class AuthViewModel @Inject constructor(
         val pass = _state.value.password.trim()
 
         if (email.isBlank() || pass.isBlank()) {
-            _state.value = _state.value.copy(error = "Fill all fields")
+            _state.value = _state.value.copy(error = "Заполните все поля")
             return
         }
 
@@ -83,18 +95,38 @@ class AuthViewModel @Inject constructor(
     }
 
     fun signUp() {
+        val firstName = _state.value.firstName.trim()
+        val lastName = _state.value.lastName.trim()
+        val phone = _state.value.phone.trim()
         val email = _state.value.email.trim()
         val pass = _state.value.password.trim()
 
-        if (email.isBlank() || pass.isBlank()) {
-            _state.value = _state.value.copy(error = "Fill all fields")
+        if (
+            firstName.isBlank() ||
+            lastName.isBlank() ||
+            phone.isBlank() ||
+            email.isBlank() ||
+            pass.isBlank()
+        ) {
+            _state.value = _state.value.copy(error = "Заполните все поля")
+            return
+        }
+
+        if (pass.length < 6) {
+            _state.value = _state.value.copy(error = "Пароль должен быть минимум 6 символов")
             return
         }
 
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true, error = null)
 
-            val result = authRepository.signUpWithEmail(email, pass)
+            val result = authRepository.signUpWithEmail(
+                email = email,
+                pass = pass,
+                firstName = firstName,
+                lastName = lastName,
+                phone = phone
+            )
 
             if (result.isSuccess) {
                 _state.value = AuthUiState(

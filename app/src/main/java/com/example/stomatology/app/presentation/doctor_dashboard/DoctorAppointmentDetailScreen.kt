@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.stomatology.app.domain.model.Appointment
+import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.example.stomatology.app.domain.model.toUiText
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,6 +88,11 @@ private fun AppointmentDetailContent(
     onComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isFinalStatus =
+        appointment.status == AppointmentStatus.COMPLETED ||
+                appointment.status == AppointmentStatus.REJECTED ||
+                appointment.status == AppointmentStatus.CANCELLED
+
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -109,6 +115,7 @@ private fun AppointmentDetailContent(
 
         Button(
             onClick = onAccept,
+            enabled = !isFinalStatus,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Принять")
@@ -116,6 +123,7 @@ private fun AppointmentDetailContent(
 
         OutlinedButton(
             onClick = onReject,
+            enabled = !isFinalStatus,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Отклонить")
@@ -123,6 +131,7 @@ private fun AppointmentDetailContent(
 
         OutlinedButton(
             onClick = onComplete,
+            enabled = !isFinalStatus,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Завершить")

@@ -26,17 +26,17 @@ import com.example.stomatology.app.presentation.theme.PrimaryBlue
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (String) -> Unit,
     onNavigateToRegister: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
 
     val state by viewModel.state.collectAsState()
 
-    // ✅ SUCCESS
     LaunchedEffect(state.isSuccess) {
-        if (state.isSuccess) {
-            onLoginSuccess()
+        if (state.isSuccess && state.role != null) {
+            onLoginSuccess(state.role!!)
+            viewModel.clearSuccess()
         }
     }
 

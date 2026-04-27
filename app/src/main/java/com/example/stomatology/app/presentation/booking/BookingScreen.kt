@@ -221,12 +221,11 @@ private fun BookingScreenContent(
                     onDismissRequest = { viewModel.onDoctorMenuExpandedChange(false) },
                     modifier = Modifier.background(Color.White)
                 ) {
-                    state.doctorList.forEach { doctor ->
+                    state.doctors.forEach { doctor ->
                         DropdownMenuItem(
-                            text = { Text(text = doctor) },
+                            text = { Text(doctor.name) },
                             onClick = {
-                                viewModel.onDoctorNameChange(doctor)
-                                viewModel.onDoctorMenuExpandedChange(false)
+                                viewModel.onDoctorSelected(doctor)
                             }
                         )
                     }

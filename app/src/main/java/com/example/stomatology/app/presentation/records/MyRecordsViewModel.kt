@@ -1,4 +1,4 @@
-package com.example.stomatology.app.presentation.doctor_dashboard
+package com.example.stomatology.app.presentation.records
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,49 +14,44 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class DoctorAppointmentUiState(
+data class MyRecordsUiState(
     val appointments: List<Appointment> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )
 
 @HiltViewModel
-class DoctorAppointmentViewModel @Inject constructor(
+class MyRecordsViewModel @Inject constructor(
     private val appointmentRepository: AppointmentRepository,
     private val auth: FirebaseAuth
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(DoctorAppointmentUiState())
-    val uiState: StateFlow<DoctorAppointmentUiState> = _uiState
-
-    private val doctorId: String
-        get() = auth.currentUser?.uid.orEmpty()
+    private val _uiState = MutableStateFlow(MyRecordsUiState())
+    val uiState: StateFlow<MyRecordsUiState> = _uiState
 
     init {
         observeAppointments()
     }
 
     private fun observeAppointments() {
-        val currentDoctorId = doctorId
+        val patientId = auth.currentUser?.uid
 
-        if (currentDoctorId.isBlank()) {
+        if (patientId == null) {
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    error = "Доктор не авторизован"
+                    error = "Пользователь не авторизован"
                 )
             }
             return
         }
 
         viewModelScope.launch {
-            appointmentRepository.getAppointmentsForDoctor(currentDoctorId)
+            appointmentRepository.getAppointmentsForPatient(patientId)
                 .collectLatest { appointments ->
                     _uiState.update {
                         it.copy(
-                            appointments = appointments.sortedByDescending { item ->
-                                item.createdAt
-                            },
+                            appointments = appointments.sortedByDescending { item -> item.createdAt },
                             isLoading = false,
                             error = null
                         )
@@ -65,27 +60,17 @@ class DoctorAppointmentViewModel @Inject constructor(
         }
     }
 
-    fun accept(id: String) {
-        updateStatus(id, AppointmentStatus.ACCEPTED)
+    fun upcomingAppointments(): List<Appointment> {
+        return _uiState.value.appointments.filter {
+            it.status == AppointmentStatus.PENDING || it.status == AppointmentStatus.ACCEPTED
+        }
     }
 
-    fun reject(id: String) {
-        updateStatus(id, AppointmentStatus.REJECTED)
-    }
-
-    fun complete(id: String) {
-        updateStatus(id, AppointmentStatus.COMPLETED)
-    }
-
-    private fun updateStatus(id: String, status: AppointmentStatus) {
-        viewModelScope.launch {
-            try {
-                appointmentRepository.updateStatus(id, status)
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(error = e.message ?: "Не удалось обновить статус")
-                }
-            }
+    fun pastAppointments(): List<Appointment> {
+        return _uiState.value.appointments.filter {
+            it.status == AppointmentStatus.COMPLETED ||
+                    it.status == AppointmentStatus.REJECTED ||
+                    it.status == AppointmentStatus.CANCELLED
         }
     }
 }

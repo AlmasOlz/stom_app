@@ -14,6 +14,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -58,6 +59,7 @@ sealed class BottomNavItem(
 fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
+    val authState by authViewModel.state.collectAsState()
 
     val patientBottomBarRoutes = listOf(
         BottomNavItem.Notifications.route,
@@ -76,6 +78,28 @@ fun AppNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    LaunchedEffect(authState.isSuccess, authState.role) {
+        if (authState.isSuccess) {
+            when (authState.role) {
+                "doctor" -> {
+                    navController.navigate(DoctorRoutes.Dashboard) {
+                        popUpTo("login") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    authViewModel.clearSuccess()
+                }
+
+                "patient" -> {
+                    navController.navigate(BottomNavItem.Home.route) {
+                        popUpTo("login") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    authViewModel.clearSuccess()
+                }
+            }
+        }
+    }
+
     Scaffold(
         bottomBar = {
             when {
@@ -91,34 +115,16 @@ fun AppNavigation() {
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = BottomNavItem.Home.route, // потом вернёшь на "login"
+            startDestination = "login",
             modifier = Modifier.padding(padding)
         ) {
             composable("login") {
                 LoginScreen(
-                    onLoginSuccess = {
-                        val role = authViewModel.state.value.role
-                        when (role) {
-                            "doctor" -> {
-                                navController.navigate(DoctorRoutes.Dashboard) {
-                                    popUpTo("login") { inclusive = true }
-                                }
-                            }
-
-                            "patient" -> {
-                                navController.navigate(BottomNavItem.Home.route) {
-                                    popUpTo("login") { inclusive = true }
-                                }
-                            }
-
-                            else -> {
-                                navController.navigate(BottomNavItem.Home.route) {
-                                    popUpTo("login") { inclusive = true }
-                                }
-                            }
-                        }
+                    onLoginSuccess = {},
+                    onNavigateToRegister = {
+                        navController.navigate("register")
                     },
-                    onNavigateToRegister = { navController.navigate("register") }
+                    viewModel = authViewModel
                 )
             }
 
@@ -127,9 +133,14 @@ fun AppNavigation() {
                     onRegisterSuccess = {
                         navController.navigate(BottomNavItem.Home.route) {
                             popUpTo("login") { inclusive = true }
+                            launchSingleTop = true
                         }
+                        authViewModel.clearSuccess()
                     },
-                    onNavigateToLogin = { navController.popBackStack() }
+                    onNavigateToLogin = {
+                        navController.popBackStack()
+                    },
+                    viewModel = authViewModel
                 )
             }
 
@@ -138,8 +149,10 @@ fun AppNavigation() {
                     onNavigateToClinics = { service ->
                         navController.navigate("clinics/${Uri.encode(service)}")
                     },
-                    onNavigateToAi = { navController.navigate("ai_analysis") },
-                    onNavigateToOtherServices = { }
+                    onNavigateToAi = {
+                        navController.navigate("ai_analysis")
+                    },
+                    onNavigateToOtherServices = {}
                 )
             }
 
@@ -189,7 +202,9 @@ fun AppNavigation() {
             }
 
             composable(BottomNavItem.Notifications.route) {
-                NotificationHistoryScreen { navController.popBackStack() }
+                NotificationHistoryScreen {
+                    navController.popBackStack()
+                }
             }
 
             composable(BottomNavItem.Dashboard.route) {
@@ -215,6 +230,7 @@ fun AppNavigation() {
 
             composable(DoctorRoutes.Dashboard) {
                 val doctorDashboardViewModel = hiltViewModel<DoctorDashboardViewModel>()
+
                 DoctorDashboardScreen(
                     viewModel = doctorDashboardViewModel,
                     onOpenAppointments = {
@@ -228,6 +244,7 @@ fun AppNavigation() {
 
             composable(DoctorRoutes.Appointments) {
                 val doctorAppointmentViewModel = hiltViewModel<DoctorAppointmentViewModel>()
+
                 DoctorAppointmentListScreen(
                     viewModel = doctorAppointmentViewModel,
                     onBack = { navController.popBackStack() },
@@ -255,29 +272,6 @@ fun AppNavigation() {
                 )
             }
         }
-
-        LaunchedEffect(authViewModel.state.value.isSuccess, authViewModel.state.value.role) {
-            val state = authViewModel.state.value
-            if (state.isSuccess) {
-                when (state.role) {
-                    "doctor" -> {
-                        navController.navigate(DoctorRoutes.Dashboard) {
-                            popUpTo("login") { inclusive = true }
-                            launchSingleTop = true
-                        }
-                        authViewModel.clearSuccess()
-                    }
-
-                    "patient" -> {
-                        navController.navigate(BottomNavItem.Home.route) {
-                            popUpTo("login") { inclusive = true }
-                            launchSingleTop = true
-                        }
-                        authViewModel.clearSuccess()
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -297,7 +291,12 @@ fun BottomNavigationBar(
     NavigationBar(containerColor = PrimaryBlue) {
         items.forEach { item ->
             NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.label) },
+                icon = {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label
+                    )
+                },
                 selected = currentRoute == item.route,
                 onClick = {
                     if (currentRoute != item.route) {
@@ -326,7 +325,12 @@ fun DoctorBottomNavigationBar(
     NavigationBar(containerColor = PrimaryBlue) {
         items.forEach { item ->
             NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.label) },
+                icon = {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label
+                    )
+                },
                 selected = currentRoute == item.route,
                 onClick = {
                     if (currentRoute != item.route) {

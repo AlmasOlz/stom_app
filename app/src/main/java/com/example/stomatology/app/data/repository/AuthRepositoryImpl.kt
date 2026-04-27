@@ -20,26 +20,38 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun signUpWithEmail(email: String, pass: String): Result<Boolean> {
+    override suspend fun signUpWithEmail(
+        email: String,
+        pass: String,
+        firstName: String,
+        lastName: String,
+        phone: String
+    ): Result<Boolean> {
         return try {
             val authResult = firebaseAuth.createUserWithEmailAndPassword(email, pass).await()
-            val uid = authResult.user?.uid
-                ?: return Result.failure(IllegalStateException("UID not found after registration"))
 
-            val profileResult = saveUserProfile(
-                uid = uid,
-                email = email,
-                role = "patient"
+            val uid = authResult.user?.uid
+                ?: return Result.failure(Exception("UID not found"))
+
+            val displayName = "$firstName $lastName"
+
+            val userData = hashMapOf(
+                "uid" to uid,
+                "email" to email,
+                "role" to "patient",
+                "firstName" to firstName,
+                "lastName" to lastName,
+                "displayName" to displayName,
+                "phone" to phone,
+                "createdAt" to System.currentTimeMillis()
             )
 
-            if (profileResult.isSuccess) {
-                Result.success(true)
-            } else {
-                Result.failure(
-                    profileResult.exceptionOrNull()
-                        ?: IllegalStateException("Failed to save user profile")
-                )
-            }
+            firestore.collection("users")
+                .document(uid)
+                .set(userData)
+                .await()
+
+            Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -65,7 +77,7 @@ class AuthRepositoryImpl @Inject constructor(
                 .await()
 
             val role = snapshot.getString("role")
-                ?: return Result.failure(IllegalStateException("User role not found"))
+                ?: return Result.failure(Exception("Role not found"))
 
             Result.success(role)
         } catch (e: Exception) {
@@ -76,15 +88,20 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun saveUserProfile(
         uid: String,
         email: String,
-        role: String
+        role: String,
+        firstName: String,
+        lastName: String,
+        phone: String
     ): Result<Unit> {
         return try {
             val data = hashMapOf(
                 "uid" to uid,
                 "email" to email,
                 "role" to role,
-                "displayName" to "",
-                "phone" to "",
+                "firstName" to firstName,
+                "lastName" to lastName,
+                "displayName" to "$firstName $lastName",
+                "phone" to phone,
                 "createdAt" to System.currentTimeMillis()
             )
 

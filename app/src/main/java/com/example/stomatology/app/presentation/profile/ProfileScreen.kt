@@ -25,23 +25,51 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @Composable
 fun ProfileScreen(
     onEditProfile: () -> Unit,
-    onNotifications: () -> Unit
+    onNotifications: () -> Unit,
+    viewModel: UserProfileViewModel = hiltViewModel()
 ) {
+    val state by viewModel.uiState.collectAsState()
+
+    if (state.isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF8F9FA)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = PrimaryBlue)
+        }
+        return
+    }
+
+    val user = state.user
+
+    val displayName = user.displayName
+        .ifBlank { "${user.firstName} ${user.lastName}".trim() }
+        .ifBlank { "Пользователь" }
+
+    val email = user.email.ifBlank { "email не указан" }
+    val phone = user.phone.ifBlank { "телефон не указан" }
+
     val scrollState = rememberScrollState()
 
     Column(
@@ -121,13 +149,13 @@ fun ProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Алтынай Мадиханова",
+                text = displayName,
                 fontSize = 20.sp,
                 color = Color.Black
             )
 
             Text(
-                text = "youremail@domain.com | +01 234 567 89",
+                text = "$email | $phone",
                 fontSize = 14.sp,
                 color = Color.Gray
             )

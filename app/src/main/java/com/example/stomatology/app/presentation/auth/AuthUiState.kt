@@ -1,6 +1,9 @@
 package com.example.stomatology.app.presentation.auth
 
 data class AuthUiState(
+    val firstName: String = "",
+    val lastName: String = "",
+    val phone: String = "",
     val email: String = "",
     val password: String = "",
     val isLoading: Boolean = false,

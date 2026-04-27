@@ -27,9 +27,12 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,13 +43,47 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.stomatology.app.presentation.profile.UserProfileViewModel
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @Composable
 fun TrackingScreen(
     onBack: () -> Unit,
     onNavigateToReminders: () -> Unit = {},
-    onNavigateToLesson: (String) -> Unit = {}
+    onNavigateToLesson: (String) -> Unit = {},
+    profileViewModel: UserProfileViewModel = hiltViewModel()
+) {
+    val profileState by profileViewModel.uiState.collectAsState()
+
+    val userName = profileState.user.firstName
+        .ifBlank { profileState.user.displayName }
+        .ifBlank { "Пользователь" }
+
+    if (profileState.isLoading) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF8F9FA)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = PrimaryBlue)
+        }
+        return
+    }
+
+    TrackingContent(
+        userName = userName,
+        onNavigateToReminders = onNavigateToReminders,
+        onNavigateToLesson = onNavigateToLesson
+    )
+}
+
+@Composable
+private fun TrackingContent(
+    userName: String,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToLesson: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
 
@@ -74,7 +111,7 @@ fun TrackingScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Привет Алтын 👋",
+                text = "Привет $userName 👋",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black

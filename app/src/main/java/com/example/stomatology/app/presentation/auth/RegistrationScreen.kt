@@ -31,10 +31,10 @@ fun RegistrationScreen(
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
 
-    // 👉 УСПЕХ
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
             onRegisterSuccess()
+            viewModel.clearSuccess()
         }
     }
 
@@ -43,8 +43,6 @@ fun RegistrationScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-
-        // 🌊 Верхний фон
         TopWaveBackground()
 
         Column(
@@ -54,8 +52,7 @@ fun RegistrationScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.Start
         ) {
-
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(90.dp))
 
             Text(
                 text = "Регистрация",
@@ -65,46 +62,43 @@ fun RegistrationScreen(
             )
 
             Text(
-                text = "Sign up with",
+                text = "Создайте аккаунт пациента",
                 fontSize = 14.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
             )
 
-            // Соц кнопки (заглушки)
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                SocialButton(text = "G", color = Color.Red)
-                SocialButton(text = "f", color = Color.Blue)
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // EMAIL
-            Text("Email", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = state.email,
-                onValueChange = viewModel::onEmailChange,
-                placeholder = { Text("example@gmail.com") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.LightGray,
-                    focusedIndicatorColor = PrimaryBlue
-                )
+            AuthTextField(
+                label = "Имя",
+                value = state.firstName,
+                placeholder = "Алмас",
+                onValueChange = viewModel::onFirstNameChange
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            AuthTextField(
+                label = "Фамилия",
+                value = state.lastName,
+                placeholder = "Олжабай",
+                onValueChange = viewModel::onLastNameChange
+            )
 
-            // PASSWORD
+            AuthTextField(
+                label = "Телефон",
+                value = state.phone,
+                placeholder = "+7 777 123 45 67",
+                keyboardType = KeyboardType.Phone,
+                onValueChange = viewModel::onPhoneChange
+            )
+
+            AuthTextField(
+                label = "Email",
+                value = state.email,
+                placeholder = "example@gmail.com",
+                keyboardType = KeyboardType.Email,
+                onValueChange = viewModel::onEmailChange
+            )
+
             Text("Password", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
@@ -124,11 +118,10 @@ fun RegistrationScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // TERMS
             Text(
-                text = "Creating an account means you're okay with our Terms of Service and our Privacy Policy",
+                text = "Создавая аккаунт, вы соглашаетесь с условиями сервиса и политикой конфиденциальности",
                 fontSize = 12.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
@@ -137,9 +130,8 @@ fun RegistrationScreen(
                     .padding(horizontal = 16.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // ❌ ERROR
             state.error?.let {
                 Text(
                     text = it,
@@ -151,10 +143,10 @@ fun RegistrationScreen(
                 )
             }
 
-            // 🔄 LOADING / BUTTON
             if (state.isLoading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    color = PrimaryBlue
                 )
             } else {
                 Button(
@@ -176,7 +168,6 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ПЕРЕХОД НА LOGIN
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
@@ -194,4 +185,35 @@ fun RegistrationScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AuthTextField(
+    label: String,
+    value: String,
+    placeholder: String,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    onValueChange: (String) -> Unit
+) {
+    Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    Spacer(modifier = Modifier.height(8.dp))
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = { Text(placeholder) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        singleLine = true,
+        colors = TextFieldDefaults.colors(
+            unfocusedContainerColor = Color.Transparent,
+            focusedContainerColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.LightGray,
+            focusedIndicatorColor = PrimaryBlue
+        )
+    )
+
+    Spacer(modifier = Modifier.height(16.dp))
 }
