@@ -60,7 +60,8 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
 
-    // Hilt
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
+
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
