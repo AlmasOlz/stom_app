@@ -15,15 +15,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.CheckCircle
-<<<<<<< HEAD
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-=======
 import androidx.compose.material3.*
->>>>>>> origin/feature/lesson-page
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,7 +42,7 @@ data class VideoTopic(
 fun TrackingScreen(
     onBack: () -> Unit,
     onNavigateToReminders: () -> Unit = {},
-<<<<<<< HEAD
+    onNavigateToInstructions: () -> Unit = {},
     onNavigateToLesson: (String) -> Unit = {},
     profileViewModel: UserProfileViewModel = hiltViewModel()
 ) {
@@ -75,6 +67,7 @@ fun TrackingScreen(
     TrackingContent(
         userName = userName,
         onNavigateToReminders = onNavigateToReminders,
+        onNavigateToInstructions = onNavigateToInstructions,
         onNavigateToLesson = onNavigateToLesson
     )
 }
@@ -83,11 +76,8 @@ fun TrackingScreen(
 private fun TrackingContent(
     userName: String,
     onNavigateToReminders: () -> Unit,
+    onNavigateToInstructions: () -> Unit,
     onNavigateToLesson: (String) -> Unit
-=======
-    onNavigateToInstructions: () -> Unit = {}, // ЖАҢА: Советы бетіне өту үшін
-    onNavigateToLesson: (String) -> Unit = {}
->>>>>>> origin/feature/lesson-page
 ) {
     val scrollState = rememberScrollState()
 
@@ -109,7 +99,6 @@ private fun TrackingContent(
             .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
-        // Шапка
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -132,7 +121,6 @@ private fun TrackingContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Прогресс картасы
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -162,7 +150,9 @@ private fun TrackingContent(
                         tint = PrimaryBlue,
                         modifier = Modifier.size(24.dp)
                     )
+
                     Spacer(modifier = Modifier.width(8.dp))
+
                     Text(
                         text = "Step 3/4",
                         color = PrimaryBlue,
@@ -207,7 +197,9 @@ private fun TrackingContent(
                                     )
                                 }
                             }
+
                             Spacer(modifier = Modifier.height(4.dp))
+
                             Text(
                                 text = day,
                                 fontSize = 12.sp,
@@ -221,7 +213,11 @@ private fun TrackingContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(text = "Перейти на:", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Перейти на:",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -299,7 +295,9 @@ fun ActionCard(
                 tint = PrimaryBlue,
                 modifier = Modifier.size(32.dp)
             )
+
             Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = title,
                 fontSize = 14.sp,
@@ -336,6 +334,7 @@ fun VideoCard(
                     tint = PrimaryBlue,
                     modifier = Modifier.size(32.dp)
                 )
+
                 Text(
                     text = topic.title,
                     fontSize = 14.sp,
