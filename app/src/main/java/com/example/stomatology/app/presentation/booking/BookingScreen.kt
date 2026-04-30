@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -21,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.example.stomatology.app.domain.model.DoctorOption
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 import java.text.SimpleDateFormat
 import java.util.*
@@ -92,6 +95,8 @@ private fun BookingScreenContent(
     viewModel: BookingViewModel,
     scrollModifier: Modifier = Modifier
 ) {
+    val selectedDoctor = state.doctors.firstOrNull { doctor -> doctor.uid == state.doctorId }
+
     // --- 1. ДИАЛОГ ВЫБОРА ДАТЫ ---
     if (state.showDatePicker) {
         // Создаем состояние календаря с ограничением дат
@@ -150,7 +155,7 @@ private fun BookingScreenContent(
 
                     TimeSelectionGrid(
                         selectedTime = state.selectedTime,
-                        timeSlots = state.availableTimeSlots.ifEmpty { listOf("09:00", "10:00", "11:00", "14:00", "15:00", "16:00") },
+                        timeSlots = state.availableTimeSlots,
                         onTimeSelect = {
                             viewModel.onTimeSelected(it)
                             viewModel.onShowTimePicker(false)
@@ -208,12 +213,14 @@ private fun BookingScreenContent(
                     readOnly = true,
                     placeholder = { Text("Выберите врача") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.isDoctorMenuExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryBlue,
                         unfocusedBorderColor = Color.LightGray
-                    )
+                    ),
+                    modifier = Modifier
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                        .fillMaxWidth()
                 )
 
                 ExposedDropdownMenu(
@@ -223,13 +230,40 @@ private fun BookingScreenContent(
                 ) {
                     state.doctors.forEach { doctor ->
                         DropdownMenuItem(
-                            text = { Text(doctor.name) },
+                            text = {
+                                Column {
+                                    Text(doctor.name)
+                                    if (doctor.specialty.isNotBlank()) {
+                                        Text(
+                                            text = doctor.specialty,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Color.Gray
+                                        )
+                                    }
+                                    if (doctor.experienceYears > 0) {
+                                        Text(
+                                            text = "Стаж: ${doctor.experienceYears} жыл",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color.Gray
+                                        )
+                                    }
+                                }
+                            },
                             onClick = {
                                 viewModel.onDoctorSelected(doctor)
                             }
                         )
                     }
                 }
+            }
+
+            if (state.doctors.isEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Бұл клиникада дәрігер жоқ",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
             }
         }
 
@@ -238,6 +272,10 @@ private fun BookingScreenContent(
 
         // 5. ПРОДОЛЖИТЕЛЬНОСТЬ (Өзгермейтін өріс)
         ReadOnlyTextField(label = "Продолжительность", value = state.duration)
+
+        selectedDoctor?.let { doctor ->
+            DoctorPreviewCard(doctor = doctor)
+        }
 
         state.error?.let {
             Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
@@ -344,6 +382,69 @@ fun TimeSelectionGrid(
                         text = time,
                         color = if (isSelected) Color.White else Color.DarkGray,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DoctorPreviewCard(doctor: DoctorOption) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE8F4FA)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (doctor.photoUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = doctor.photoUrl,
+                        contentDescription = "Doctor avatar",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        text = doctor.name.take(1).uppercase(),
+                        color = PrimaryBlue,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(doctor.name, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(
+                    text = doctor.specialty.ifBlank { "Стоматолог" },
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (doctor.experienceYears > 0) {
+                    Text(
+                        text = "Стаж: ${doctor.experienceYears} жыл",
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (doctor.aboutDoctor.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = doctor.aboutDoctor,
+                        color = Color.DarkGray,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 3
                     )
                 }
             }

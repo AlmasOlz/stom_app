@@ -11,7 +11,15 @@ data class Clinic(
     val services: List<String> = emptyList(),
     val imageUrl: String = "",
     val priceFrom: Int = 0,
-    val description: String = ""
+    val priceList: List<ServicePrice> = emptyList(),
+    val description: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
+)
+
+data class ServicePrice(
+    val service: String = "",
+    val price: Int = 0
 )
 
 // ─── AI Analysis ──────────────────────────────────────────────────────────────

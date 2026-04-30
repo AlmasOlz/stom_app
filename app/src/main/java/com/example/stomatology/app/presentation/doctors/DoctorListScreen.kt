@@ -20,48 +20,42 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.stomatology.app.R
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
-
-data class DoctorItem(
-    val id: String,
-    val name: String,
-    val specialty: String
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DoctorListScreen(
-    onDoctorClick: (String) -> Unit
+    onDoctorClick: (String) -> Unit,
+    viewModel: DoctorListViewModel = hiltViewModel()
 ) {
-    val doctors = listOf(
-        DoctorItem("1", "Нуржан Сатжанов", "Ортодонт"),
-        DoctorItem("2", "Ажар Арнабек", "Терапевт"),
-        DoctorItem("3", "Динара Ахметова", "Хирург"),
-        DoctorItem("4", "Арман Маратович", "Имплантолог"),
-        DoctorItem("5", "Лейла Ашимова", "Челюстно-лицевой хирург"),
-        DoctorItem("6", "Айгерим Рауан", "Детский хирург")
-    )
+    val state by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Выбор врача",
+                        text = stringResource(R.string.doctor_list_title),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
@@ -91,7 +85,7 @@ fun DoctorListScreen(
             ) {
                 Column(modifier = Modifier.fillMaxWidth(0.6f)) {
                     Text(
-                        text = "Лечение зубов без боли и страха",
+                        text = stringResource(R.string.doctor_list_hero),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
@@ -106,7 +100,7 @@ fun DoctorListScreen(
                         modifier = Modifier.height(32.dp)
                     ) {
                         Text(
-                            text = "Подробнее",
+                            text = stringResource(R.string.doctor_list_details),
                             color = PrimaryBlue,
                             fontSize = 12.sp
                         )
@@ -117,7 +111,7 @@ fun DoctorListScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Наши врачи",
+                text = stringResource(R.string.doctor_list_section_title),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -125,13 +119,64 @@ fun DoctorListScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            DoctorListContent(
+                state = state,
+                onDoctorClick = onDoctorClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun DoctorListContent(
+    state: DoctorListUiState,
+    onDoctorClick: (String) -> Unit
+) {
+    when {
+        state.isLoading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = PrimaryBlue)
+            }
+        }
+
+        state.error != null -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = state.error.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.doctor_list_load_error),
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        state.doctors.isEmpty() -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.doctor_list_empty),
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        else -> {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(doctors) { doctor ->
+                items(state.doctors, key = { doctor -> doctor.id }) { doctor ->
                     DoctorCard(
                         doctor = doctor,
                         onClick = { onDoctorClick(doctor.name) }
@@ -147,6 +192,10 @@ fun DoctorCard(
     doctor: DoctorItem,
     onClick: () -> Unit
 ) {
+    val specialty = doctor.specialty.ifBlank {
+        stringResource(R.string.doctor_list_default_specialty)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -181,7 +230,7 @@ fun DoctorCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = doctor.specialty,
+                text = specialty,
                 fontSize = 10.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,

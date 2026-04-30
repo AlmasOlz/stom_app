@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDocPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function hasRole(roleName) {
+      return signedIn()
+        && exists(userDocPath(request.auth.uid))
+        && get(userDocPath(request.auth.uid)).data.role == roleName;
+    }
+
+    function isAdmin() {
+      return hasRole("admin");
+    }
+
+    function isDoctor() {
+      return hasRole("doctor");
+    }
+
+    function isPatient() {
+      return hasRole("patient");
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userEditableFieldsOnly() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        "firstName",
+        "lastName",
+        "displayName",
+        "phone",
+        "photoUrl",
+        "specialty",
+        "experienceYears",
+        "aboutDoctor",
+        "updatedAt"
+      ]);
+    }
+
+    function doctorEditableAppointmentFieldsOnly() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        "status",
+        "rejectionReason",
+        "updatedAt"
+      ]);
+    }
+
+    function patientEditableAppointmentFieldsOnly() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        "status",
+        "updatedAt"
+      ]);
+    }
+
+    function doctorOwnsAppointment() {
+      return signedIn() && resource.data.doctorId == request.auth.uid;
+    }
+
+    function patientOwnsAppointment() {
+      return signedIn() && resource.data.patientId == request.auth.uid;
+    }
+
+    function sameIdentityFields() {
+      return request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.doctorId == resource.data.doctorId
+        && request.resource.data.clinicId == resource.data.clinicId
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /users/{userId} {
+      allow read: if isAdmin()
+        || isSelf(userId)
+        || resource.data.role == "doctor";
+
+      allow create: if isSelf(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == "patient";
+
+      allow update: if isAdmin()
+        || (
+          isSelf(userId)
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.createdAt == resource.data.createdAt
+          && userEditableFieldsOnly()
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /clinics/{clinicId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if isAdmin() || doctorOwnsAppointment() || patientOwnsAppointment();
+
+      allow create: if signedIn()
+        && request.resource.data.patientId == request.auth.uid
+        && request.resource.data.status == "PENDING";
+
+      allow update: if isAdmin()
+        || (
+          isDoctor() && doctorOwnsAppointment()
+          && doctorEditableAppointmentFieldsOnly()
+          && sameIdentityFields()
+        )
+        || (
+          isPatient() && patientOwnsAppointment()
+          && patientEditableAppointmentFieldsOnly()
+          && request.resource.data.status == "CANCELLED"
+          && sameIdentityFields()
+        );
+
+      allow delete: if isAdmin();
+    }
+  }
+}

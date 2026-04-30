@@ -4,7 +4,9 @@ import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,8 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -34,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.stomatology.app.domain.model.Finding
 import com.example.stomatology.app.domain.model.ToothDetectionState
+import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 import java.io.File
 import java.io.FileOutputStream
@@ -115,20 +117,12 @@ fun AiAnalysisScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Стоматологическая карта",
+                        "Стоматологиялық карта",
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            tint = Color.White,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
+                navigationIcon = { AppBackButton(onClick = onBack, onPrimary = true) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PrimaryBlue)
             )
         }
@@ -137,7 +131,7 @@ fun AiAnalysisScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .background(Color(0xFF29323C))
+                .background(Color(0xFFF3F8FB))
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -157,8 +151,8 @@ fun AiAnalysisScreen(
                     Spacer(modifier = Modifier.weight(1f))
                     CircularProgressIndicator(color = PrimaryBlue)
                     Text(
-                        "AI суретті талдауда...",
-                        color = Color.White,
+                        "AI суретті талдап жатыр...",
+                        color = PrimaryBlue,
                         modifier = Modifier.padding(top = 16.dp)
                     )
                     Spacer(modifier = Modifier.weight(1f))
@@ -222,7 +216,7 @@ fun AiAnalysisScreen(
                                         )
 
                                         Text(
-                                            text = "Класс: $toothCode",
+                                            text = "Код: $toothCode",
                                             color = Color.DarkGray,
                                             fontSize = 14.sp
                                         )
@@ -281,7 +275,7 @@ fun AiAnalysisScreen(
                                     ) {
                                         LegendItem(ColorAbscess, "Абсцесс")
                                         LegendItem(ColorCaries, "Кариес")
-                                        LegendItem(ColorCrown, "Коронка")
+                                        LegendItem(ColorCrown, "Сауыт")
                                     }
 
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -307,6 +301,17 @@ fun AiAnalysisScreen(
                                     }
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            AnalysisReportSection(
+                                report = state.report,
+                                onToothClick = { item ->
+                                    selectedDisplayNumber = item.displayNumber
+                                    selectedFinding = state.result.findings
+                                        .firstOrNull { finding -> finding.toothClass == item.toothCode }
+                                }
+                            )
                         }
                     }
 
@@ -472,15 +477,7 @@ fun DrawTooth(
     }
 }
 
-/**
- * UI rule:
- * - If backend returns MISSING -> black
- * - If backend returns UNKNOWN -> white
- * - If backend returns DETECTED -> by conditions
- * - If tooth not found in findings at all:
- *      wisdom teeth -> white
- *      all others   -> black
- */
+
 fun resolveToothColor(
     displayNumber: Int,
     toothCode: String,
@@ -547,10 +544,7 @@ fun LegendItem(
                 .background(color)
                 .then(
                     if (hasBorder) {
-                        Modifier.background(
-                            color = Color.LightGray,
-                            shape = CircleShape
-                        )
+                        Modifier.border(1.dp, Color.LightGray, CircleShape)
                     } else {
                         Modifier
                     }
@@ -568,19 +562,334 @@ fun LegendItem(
 
 // ─── Condition text helper ────────────────────────────────────────────────────
 
+@Composable
+private fun AnalysisReportSection(
+    report: AiAnalysisReport,
+    onToothClick: (ToothReportItem) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        ReportOverviewCard(report)
+        ChecklistCard(report.checklist)
+        ProblemTeethCard(report, onToothClick)
+        TreatmentPriceCard(report.priceSummary)
+    }
+}
+
+@Composable
+private fun ReportOverviewCard(report: AiAnalysisReport) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Дайын талдау", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MetricPill("Табылды", report.detectedTeeth.toString(), PrimaryBlue, Modifier.weight(1f))
+                MetricPill("Кариес", report.cariesCount.toString(), ColorCaries, Modifier.weight(1f))
+                MetricPill("Шұғыл", report.urgentCount.toString(), ColorAbscess, Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MetricPill("Сау", report.healthyTeeth.toString(), Color(0xFF43A047), Modifier.weight(1f))
+                MetricPill("Қалпына", report.restorationCount.toString(), ColorFilling, Modifier.weight(1f))
+                MetricPill("Ем қажет", report.activeTreatmentTeeth.size.toString(), Color(0xFF7E57C2), Modifier.weight(1f))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Ем қажет: белсенді емдеу керек тістер саны",
+                color = Color.Gray,
+                fontSize = 11.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun MetricPill(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f))
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(value, color = color, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+            Text(label, color = Color.DarkGray, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+@Composable
+private fun ChecklistCard(items: List<AnalysisChecklistItem>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Пациент чек-листі", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
+            items.forEachIndexed { index, item ->
+                ChecklistRow(index + 1, item)
+                if (index != items.lastIndex) Spacer(modifier = Modifier.height(10.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChecklistRow(number: Int, item: AnalysisChecklistItem) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(severityColor(item.severity)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(number.toString(), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(item.title, color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(item.description, color = Color.DarkGray, fontSize = 12.sp, lineHeight = 16.sp)
+        }
+    }
+}
+
+@Composable
+private fun ProblemTeethCard(report: AiAnalysisReport, onToothClick: (ToothReportItem) -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Белгісі бар тістер", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (report.problemTeeth.isEmpty()) {
+                Text(
+                    text = "Кариес, абсцесс және басқа белгілер анықталмады. Соңғы қорытындыны дәрігер растауы керек.",
+                    color = Color.DarkGray,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+            } else {
+                report.problemTeeth.forEachIndexed { index, item ->
+                    ProblemToothRow(item = item, onClick = { onToothClick(item) })
+                    if (index != report.problemTeeth.lastIndex) Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProblemToothRow(item: ToothReportItem, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFF7F9FC))
+            .border(1.dp, severityColor(item.severity).copy(alpha = 0.18f), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(severityColor(item.severity)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(item.displayNumber.toString(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.conditionText.ifBlank { "Бақылау" },
+                color = Color.Black,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text("${item.toothCode} • ${item.recommendedService}", color = Color.DarkGray, fontSize = 12.sp)
+        }
+
+        SeverityBadge(item.severity)
+    }
+}
+
+@Composable
+private fun SeverityBadge(severity: TreatmentSeverity) {
+    val color = severityColor(severity)
+    Surface(shape = RoundedCornerShape(8.dp), color = color.copy(alpha = 0.12f)) {
+        Text(
+            text = severityText(severity),
+            color = color,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun TreatmentPriceCard(summary: TreatmentPriceSummary) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Емдеудің орташа бағасы", color = Color.Black, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(10.dp))
+
+            when {
+                summary.affectedTeethCount == 0 -> {
+                    Text(
+                        text = "Сурет бойынша белсенді емдеу қажет белгі табылмады, сондықтан баға есептелмейді.",
+                        color = Color.DarkGray,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+                }
+
+                !summary.hasPriceData -> {
+                    Text(
+                        text = "Клиникаларда баға есебі үшін дерек жоқ. Клиника деректеріне priceFrom немесе priceList қосыңыз.",
+                        color = Color.DarkGray,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+                }
+
+                else -> {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PriceSummaryBox("Бір тіске", formatTenge(summary.averagePerTooth), Modifier.weight(1f))
+                        PriceSummaryBox("Жалпы", formatTenge(summary.averageTotal), Modifier.weight(1f))
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Клиникалар бойынша баға аралығы: ${formatTenge(summary.minTotal)} - ${formatTenge(summary.maxTotal)}",
+                        color = Color.DarkGray,
+                        fontSize = 12.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val shownClinics = summary.clinicEstimates.take(5)
+                    shownClinics.forEachIndexed { index, estimate ->
+                        ClinicEstimateRow(estimate)
+                        if (index != shownClinics.lastIndex) Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PriceSummaryBox(label: String, value: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = PrimaryBlue.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.18f))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(label, color = Color.DarkGray, fontSize = 11.sp)
+            Text(value, color = PrimaryBlue, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold)
+        }
+    }
+}
+
+@Composable
+private fun ClinicEstimateRow(estimate: ClinicTreatmentEstimate) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFF7F9FC))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(estimate.clinicName, color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = estimate.matchedServices.takeIf { it.isNotEmpty() }?.joinToString(", ")
+                    ?: "Клиниканың бастапқы бағасы бойынша есеп",
+                color = Color.DarkGray,
+                fontSize = 11.sp,
+                lineHeight = 15.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = formatTenge(estimate.totalEstimate),
+            color = PrimaryBlue,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.ExtraBold
+        )
+    }
+}
+
+private fun severityColor(severity: TreatmentSeverity): Color {
+    return when (severity) {
+        TreatmentSeverity.URGENT -> ColorAbscess
+        TreatmentSeverity.IMPORTANT -> Color(0xFFFF8F00)
+        TreatmentSeverity.ATTENTION -> ColorFilling
+        TreatmentSeverity.NORMAL -> PrimaryBlue
+    }
+}
+
+private fun severityText(severity: TreatmentSeverity): String {
+    return when (severity) {
+        TreatmentSeverity.URGENT -> "шұғыл"
+        TreatmentSeverity.IMPORTANT -> "маңызды"
+        TreatmentSeverity.ATTENTION -> "бақылау"
+        TreatmentSeverity.NORMAL -> "жоспар"
+    }
+}
+
 fun conditionToReadableText(condition: String): String {
     return when (condition.lowercase()) {
         "abscess" -> "Абсцесс"
         "caries" -> "Кариес"
         "filling" -> "Пломба"
         "implant" -> "Имплант"
-        "crown" -> "Коронка"
-        "root_canal_treatment" -> "Түбір өзегі емделген"
+        "crown" -> "Сауыт"
+        "root_canal_treatment" -> "Канал емі"
         "post" -> "Штифт"
         "periapical_lesion" -> "Периапикальды өзгеріс"
         "residual_root" -> "Қалған түбір"
         "impacted_tooth" -> "Ретенцияланған тіс"
-        "endocrown" -> "Эндокоронка"
+        "endocrown" -> "Эндосауыт"
         "veneer" -> "Винир"
         else -> condition
     }

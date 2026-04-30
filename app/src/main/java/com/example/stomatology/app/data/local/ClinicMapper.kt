@@ -12,6 +12,8 @@ fun ClinicEntity.toDomain(): Clinic {
         services = if (services.isBlank()) emptyList() else services.split("|"),
         imageUrl = imageUrl,
         priceFrom = priceFrom,
-        description = description
+        description = description,
+        latitude = latitude,
+        longitude = longitude
     )
 }

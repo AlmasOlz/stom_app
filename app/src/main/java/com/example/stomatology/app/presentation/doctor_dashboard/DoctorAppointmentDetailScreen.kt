@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.example.stomatology.app.domain.model.toUiText
+import com.example.stomatology.app.presentation.components.AppBackButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,15 +41,9 @@ fun DoctorAppointmentDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Детали записи") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Назад")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
-                )
+                title = { Text("Жазба ақпараты") },
+                navigationIcon = { AppBackButton(onClick = onBack) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
         containerColor = Color(0xFFF7F9FC)
@@ -62,7 +56,7 @@ fun DoctorAppointmentDetailScreen(
                     .padding(padding)
                     .padding(16.dp)
             ) {
-                Text("Запись не найдена")
+                Text("Жазба табылмады")
             }
         } else {
             AppointmentDetailContent(
@@ -90,8 +84,8 @@ private fun AppointmentDetailContent(
 ) {
     val isFinalStatus =
         appointment.status == AppointmentStatus.COMPLETED ||
-                appointment.status == AppointmentStatus.REJECTED ||
-                appointment.status == AppointmentStatus.CANCELLED
+            appointment.status == AppointmentStatus.REJECTED ||
+            appointment.status == AppointmentStatus.CANCELLED
 
     Column(
         modifier = modifier,
@@ -100,16 +94,16 @@ private fun AppointmentDetailContent(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = appointment.patientName.ifBlank { "Пациент" },
+                    text = appointment.patientName.ifBlank { "Емделуші" },
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Телефон: ${appointment.patientPhone.ifBlank { "Не указан" }}")
+                Text("Телефон: ${appointment.patientPhone.ifBlank { "Көрсетілмеген" }}")
                 Text("Клиника: ${appointment.clinicName}")
-                Text("Услуга: ${appointment.service}")
-                Text("Дата: ${appointment.date}")
-                Text("Время: ${appointment.time}")
-                Text("Статус: ${appointment.status.toUiText()}")
+                Text("Қызмет: ${appointment.service}")
+                Text("Күні: ${appointment.date}")
+                Text("Уақыты: ${appointment.time}")
+                Text("Күйі: ${appointment.status.toUiText()}")
             }
         }
 
@@ -118,7 +112,7 @@ private fun AppointmentDetailContent(
             enabled = !isFinalStatus,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Принять")
+            Text("Қабылдау")
         }
 
         OutlinedButton(
@@ -126,7 +120,7 @@ private fun AppointmentDetailContent(
             enabled = !isFinalStatus,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Отклонить")
+            Text("Бас тарту")
         }
 
         OutlinedButton(
@@ -134,7 +128,7 @@ private fun AppointmentDetailContent(
             enabled = !isFinalStatus,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Завершить")
+            Text("Аяқтау")
         }
     }
 }

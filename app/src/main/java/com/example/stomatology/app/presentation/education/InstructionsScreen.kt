@@ -7,21 +7,29 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.stomatology.app.R
+import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @Composable
 fun InstructionsScreen(onBack: () -> Unit) {
     val scrollState = rememberScrollState()
+    val instructionSteps = stringArrayResource(R.array.recovery_specific_steps).toList()
+    val timedSteps = listOf(
+        stringResource(R.string.recovery_specific_time_today),
+        stringResource(R.string.recovery_specific_time_tomorrow)
+    )
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -42,14 +50,9 @@ fun InstructionsScreen(onBack: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.background(Color.LightGray.copy(0.3f), CircleShape)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null)
-                }
+                AppBackButton(onClick = onBack)
                 Text(
-                    text = "Скорейшего\nвыздоровления! 💪",
+                    text = stringResource(R.string.recovery_title),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     lineHeight = 24.sp
@@ -67,7 +70,7 @@ fun InstructionsScreen(onBack: () -> Unit) {
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text(
-                    text = "Ознакомьтесь с\nпослеоперационн\nыми инструкциями\nздесь:",
+                    text = stringResource(R.string.recovery_hero),
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
@@ -76,27 +79,18 @@ fun InstructionsScreen(onBack: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Text(text = "Specific Instructions:", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(text = stringResource(R.string.recovery_specific_title), fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Spacer(modifier = Modifier.height(16.dp))
 
             // 3. Қадамдар тізімі (Instructions)
-            InstructionStep(
-                step = "Step 1",
-                desc = "Bite firmly on the gauze placed in your mouth for at least 45-60 minutes and then gently remove the pack.",
-                time = "Today 8:00 AM",
-                timeColor = Color.Red
-            )
-            InstructionStep(
-                step = "Step 2",
-                desc = "After going home apply ice pack on the area in 15-20 minute intervals till nighttime.",
-                time = "Tomorrow 9:00 AM",
-                timeColor = Color(0xFF4CAF50)
-            )
-            InstructionStep(
-                step = "Step 3",
-                desc = "After removing the pack take one dosage of medicines prescribed.",
-                time = null
-            )
+            instructionSteps.forEachIndexed { index, instruction ->
+                InstructionStep(
+                    step = stringResource(R.string.recovery_step_label, index + 1),
+                    desc = instruction,
+                    time = timedSteps.getOrNull(index),
+                    timeColor = if (index == 0) Color.Red else Color(0xFF4CAF50)
+                )
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -111,8 +105,8 @@ fun InstructionsScreen(onBack: () -> Unit) {
                     Icon(Icons.Default.List, null, modifier = Modifier.size(32.dp))
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text("General Instructions", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("A comprehensive list of daily Do's and Dont's", fontSize = 12.sp)
+                        Text(stringResource(R.string.recovery_general_title), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(stringResource(R.string.recovery_general_subtitle), fontSize = 12.sp)
                     }
                 }
             }

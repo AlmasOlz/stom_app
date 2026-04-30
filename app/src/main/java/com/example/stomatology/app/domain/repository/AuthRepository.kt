@@ -1,5 +1,7 @@
 package com.example.stomatology.app.domain.repository
 
+import com.example.stomatology.app.core.firebase.UserRoles
+
 interface AuthRepository {
     suspend fun signInWithEmail(email: String, pass: String): Result<Boolean>
 
@@ -8,7 +10,10 @@ interface AuthRepository {
         pass: String,
         firstName: String,
         lastName: String,
-        phone: String
+        phone: String,
+        requestedRole: String = UserRoles.PATIENT,
+        specialty: String = "",
+        clinicId: String = ""
     ): Result<Boolean>
 
     fun isUserAuthenticated(): Boolean
@@ -16,13 +21,19 @@ interface AuthRepository {
     fun signOut()
 
     suspend fun getUserRole(uid: String): Result<String>
+    suspend fun getDoctorRequestInfo(uid: String): Result<DoctorRequestInfo>
 
     suspend fun saveUserProfile(
         uid: String,
         email: String,
-        role: String = "patient",
+        role: String = UserRoles.PATIENT,
         firstName: String = "",
         lastName: String = "",
         phone: String = ""
     ): Result<Unit>
 }
+
+data class DoctorRequestInfo(
+    val requestedRole: String,
+    val requestStatus: String
+)

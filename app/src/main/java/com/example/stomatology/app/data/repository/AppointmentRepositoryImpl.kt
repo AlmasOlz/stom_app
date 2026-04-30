@@ -1,5 +1,7 @@
 package com.example.stomatology.app.data.repository
 
+import com.example.stomatology.app.core.firebase.FirestoreCollections
+import com.example.stomatology.app.core.firebase.FirestoreFields
 import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.example.stomatology.app.domain.repository.AppointmentRepository
@@ -16,9 +18,9 @@ class AppointmentRepositoryImpl @Inject constructor(
 ) : AppointmentRepository {
 
     override fun getAppointmentsForDoctor(doctorId: String): Flow<List<Appointment>> {
-        return firestore.collection("appointments")
-            .whereEqualTo("doctorId", doctorId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
+        return firestore.collection(FirestoreCollections.APPOINTMENTS)
+            .whereEqualTo(FirestoreFields.DOCTOR_ID, doctorId)
+            .orderBy(FirestoreFields.CREATED_AT, Query.Direction.DESCENDING)
             .snapshots()
             .map { snapshot ->
                 snapshot.toObjects(Appointment::class.java)
@@ -26,9 +28,9 @@ class AppointmentRepositoryImpl @Inject constructor(
     }
 
     override fun getAppointmentsForPatient(patientId: String): Flow<List<Appointment>> {
-        return firestore.collection("appointments")
-            .whereEqualTo("patientId", patientId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
+        return firestore.collection(FirestoreCollections.APPOINTMENTS)
+            .whereEqualTo(FirestoreFields.PATIENT_ID, patientId)
+            .orderBy(FirestoreFields.CREATED_AT, Query.Direction.DESCENDING)
             .snapshots()
             .map { snapshot ->
                 snapshot.toObjects(Appointment::class.java)
@@ -36,9 +38,14 @@ class AppointmentRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateStatus(appointmentId: String, status: AppointmentStatus) {
-        firestore.collection("appointments")
+        firestore.collection(FirestoreCollections.APPOINTMENTS)
             .document(appointmentId)
-            .update("status", status)
+            .update(
+                mapOf(
+                    FirestoreFields.STATUS to status,
+                    FirestoreFields.UPDATED_AT to System.currentTimeMillis()
+                )
+            )
             .await()
     }
 }

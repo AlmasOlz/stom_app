@@ -1,5 +1,9 @@
 package com.example.stomatology.app.data.repository
 
+import android.content.Context
+import com.example.stomatology.app.R
+import com.example.stomatology.app.core.firebase.FirestoreCollections
+import com.example.stomatology.app.core.firebase.FirestoreFields
 import com.example.stomatology.app.core.util.Resource
 import com.example.stomatology.app.data.local.ClinicDao
 import com.example.stomatology.app.data.local.ClinicEntity
@@ -8,10 +12,18 @@ import com.example.stomatology.app.data.remote.ApiService
 import com.example.stomatology.app.domain.model.AiAnalysisResult
 import com.example.stomatology.app.domain.model.Clinic
 import com.example.stomatology.app.domain.model.Finding
+import com.example.stomatology.app.domain.model.ServicePrice
 import com.example.stomatology.app.domain.model.ToothDetectionState
 import com.example.stomatology.app.domain.repository.AppRepository
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.snapshots
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -28,7 +40,9 @@ private val ALL_TEETH = listOf(
 
 class AppRepositoryImpl @Inject constructor(
     private val clinicDao: ClinicDao,
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val firestore: FirebaseFirestore,
+    @ApplicationContext private val context: Context
 ) : AppRepository {
 
     override suspend fun analyzeImage(file: File): Resource<AiAnalysisResult> {
@@ -58,15 +72,15 @@ class AppRepositoryImpl @Inject constructor(
                 )
             }
 
-            val result = AiAnalysisResult(
-                teethCount = response.teethCount ?: 0,
-                findings = findings
+            Resource.Success(
+                AiAnalysisResult(
+                    teethCount = response.teethCount ?: 0,
+                    findings = findings
+                )
             )
-
-            Resource.Success(result)
         } catch (e: Exception) {
             Resource.Error(
-                message = e.localizedMessage ?: "Failed to analyze image",
+                message = mapAiApiError(e),
                 throwable = e
             )
         }
@@ -77,67 +91,172 @@ class AppRepositoryImpl @Inject constructor(
 
         seedClinicsIfNeeded()
 
-        clinicDao.getClinics().collect { entities ->
-            emit(Resource.Success(entities.map { entity -> entity.toDomain() }))
+        try {
+            firestore.collection(FirestoreCollections.CLINICS)
+                .snapshots()
+                .collect { snapshot ->
+                    val remoteClinics = snapshot.documents
+                        .map { document -> document.toClinic() }
+                        .filter { clinic -> clinic.name.isNotBlank() }
+
+                    if (remoteClinics.isNotEmpty()) {
+                        syncLocalClinics(remoteClinics)
+                        emit(Resource.Success(remoteClinics))
+                    } else {
+                        val localClinics = clinicDao.getClinics().first().map { entity -> entity.toDomain() }
+                        emit(Resource.Success(localClinics))
+                    }
+                }
+        } catch (_: Exception) {
+            clinicDao.getClinics().collect { entities ->
+                emit(Resource.Success(entities.map { entity -> entity.toDomain() }))
+            }
         }
     }
 
     private suspend fun seedClinicsIfNeeded() {
         if (clinicDao.count() == 0) {
-            clinicDao.insertAll(
-                listOf(
-                    ClinicEntity(
-                        id = "1",
-                        name = "OneDent",
-                        rating = 4.7,
-                        reviews = 120,
-                        address = "Астана, Жиембет жырау 2",
-                        services = "Удаление зуба|Пломба / Канал|Брекеты",
-                        priceFrom = 12000,
-                        description = "Современная стоматология с терапией, удалением и ортодонтией."
-                    ),
-                    ClinicEntity(
-                        id = "2",
-                        name = "Dent Lux",
-                        rating = 4.5,
-                        reviews = 98,
-                        address = "Астана, Абая 15",
-                        services = "Протезирование|Имплант",
-                        priceFrom = 35000,
-                        description = "Клиника с упором на имплантацию и протезирование."
-                    ),
-                    ClinicEntity(
-                        id = "3",
-                        name = "Astana Stom",
-                        rating = 4.6,
-                        reviews = 76,
-                        address = "Астана, Мангилик Ел 30",
-                        services = "Удаление зуба|Имплант",
-                        priceFrom = 18000,
-                        description = "Хирургические услуги и имплантация."
-                    ),
-                    ClinicEntity(
-                        id = "4",
-                        name = "Agzamov Clinic",
-                        rating = 4.8,
-                        reviews = 154,
-                        address = "Астана, Кабанбай батыр 44",
-                        services = "Пломба / Канал|Протезирование|Брекеты",
-                        priceFrom = 15000,
-                        description = "Широкий спектр услуг от лечения каналов до брекетов."
-                    ),
-                    ClinicEntity(
-                        id = "5",
-                        name = "Dent Love",
-                        rating = 4.4,
-                        reviews = 63,
-                        address = "Астана, Сарайшик 10",
-                        services = "Брекеты|Пломба / Канал",
-                        priceFrom = 14000,
-                        description = "Уютная клиника для лечения и ортодонтии."
-                    )
-                )
+            clinicDao.insertAll(loadDefaultClinics())
+        }
+    }
+
+    private fun loadDefaultClinics(): List<ClinicEntity> {
+        val json = context.resources.openRawResource(R.raw.default_clinics)
+            .bufferedReader()
+            .use { it.readText() }
+        val type = object : TypeToken<List<DefaultClinicDto>>() {}.type
+        val clinics = Gson().fromJson<List<DefaultClinicDto>>(json, type)
+
+        return clinics.map { clinic ->
+            ClinicEntity(
+                id = clinic.id,
+                name = clinic.name,
+                rating = clinic.rating,
+                reviews = clinic.reviews,
+                address = clinic.address,
+                services = clinic.services.joinToString("|"),
+                imageUrl = clinic.imageUrl,
+                priceFrom = clinic.priceFrom,
+                description = clinic.description,
+                latitude = clinic.latitude,
+                longitude = clinic.longitude
             )
         }
+    }
+
+    private suspend fun syncLocalClinics(clinics: List<Clinic>) {
+        val entities = clinics.map { clinic ->
+            ClinicEntity(
+                id = clinic.id,
+                name = clinic.name,
+                rating = clinic.rating,
+                reviews = clinic.reviews,
+                address = clinic.address,
+                services = clinic.services.joinToString("|"),
+                imageUrl = clinic.imageUrl,
+                priceFrom = clinic.priceFrom,
+                description = clinic.description,
+                latitude = clinic.latitude,
+                longitude = clinic.longitude
+            )
+        }
+        clinicDao.insertAll(entities)
+    }
+
+    private fun DocumentSnapshot.toClinic(): Clinic {
+        val services = (get(FirestoreFields.SERVICES) as? List<*>)
+            ?.mapNotNull { value -> value as? String }
+            ?: emptyList()
+        val priceList = parsePriceList(get(FirestoreFields.PRICE_LIST))
+        val rawPriceFrom = get(FirestoreFields.PRICE_FROM)
+        val priceFrom = parseIntValue(rawPriceFrom)
+            ?: priceList.map { it.price }.filter { it > 0 }.minOrNull()
+            ?: 0
+
+        return Clinic(
+            id = id,
+            name = getString(FirestoreFields.NAME).orEmpty(),
+            rating = getDouble(FirestoreFields.RATING) ?: 0.0,
+            reviews = getLong(FirestoreFields.REVIEWS)?.toInt() ?: 0,
+            address = getString(FirestoreFields.ADDRESS).orEmpty(),
+            services = services,
+            imageUrl = getString(FirestoreFields.IMAGE_URL).orEmpty(),
+            priceFrom = priceFrom,
+            priceList = priceList,
+            description = getString(FirestoreFields.DESCRIPTION).orEmpty(),
+            latitude = getDouble(FirestoreFields.LATITUDE) ?: 0.0,
+            longitude = getDouble(FirestoreFields.LONGITUDE) ?: 0.0
+        )
+    }
+}
+
+private data class DefaultClinicDto(
+    val id: String,
+    val name: String,
+    val rating: Double,
+    val reviews: Int,
+    val address: String,
+    val services: List<String>,
+    val imageUrl: String,
+    val priceFrom: Int,
+    val description: String,
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
+)
+
+private fun parseIntValue(value: Any?): Int? {
+    return when (value) {
+        is Int -> value
+        is Long -> value.toInt()
+        is Double -> value.toInt()
+        is Float -> value.toInt()
+        is String -> value.trim().toIntOrNull()
+        else -> null
+    }?.takeIf { it >= 0 }
+}
+
+private fun extractMinPriceFromPriceList(raw: Any?): Int? {
+    val list = raw as? List<*> ?: return null
+    val prices = list.mapNotNull { item ->
+        val map = item as? Map<*, *> ?: return@mapNotNull null
+        parseIntValue(map["price"])
+    }
+    return prices.minOrNull()
+}
+
+private fun parsePriceList(raw: Any?): List<ServicePrice> {
+    val list = raw as? List<*> ?: return emptyList()
+    return list.mapNotNull { item ->
+        val map = item as? Map<*, *> ?: return@mapNotNull null
+        val service = (map["service"] ?: map["name"] ?: map["title"])?.toString()?.trim().orEmpty()
+        val price = parseIntValue(map["price"]) ?: 0
+        if (service.isBlank()) null else ServicePrice(service = service, price = price)
+    }
+}
+
+private fun mapAiApiError(error: Throwable): String {
+    val raw = error.message.orEmpty()
+    val lower = raw.lowercase()
+
+    return when {
+        lower.contains("failed to connect") ||
+            lower.contains("connection refused") ||
+            lower.contains("unable to resolve host") -> {
+            "AI сервисіне қосылу мүмкін болмады. Серверді іске қосыңыз және BASE_URL мәнін тексеріңіз."
+        }
+
+        lower.contains("timeout") -> {
+            "AI сервисінен жауап күту уақыты бітті. Кейінірек қайталап көріңіз."
+        }
+
+        lower.contains("http 500") -> {
+            "AI серверінде қате шықты (500). Модельдер жолын және /analyze endpoint-ін тексеріңіз."
+        }
+
+        lower.contains("cleartext") -> {
+            "HTTP сұрау бұғатталды. BASE_URL үшін Android желі баптауларын тексеріңіз."
+        }
+
+        else -> raw.ifBlank { "Рентген суретін талдау мүмкін болмады" }
     }
 }

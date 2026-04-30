@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
@@ -17,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @Composable
@@ -58,15 +58,7 @@ fun LocationPickerScreen(
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            FloatingActionButton(
-                onClick = onBack,
-                containerColor = Color.White,
-                contentColor = Color.Black,
-                shape = CircleShape,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-            }
+            AppBackButton(onClick = onBack)
         }
 
         // 3. ОҢ ЖАҚТАҒЫ ПРАКТИКАЛЫҚ БАТЫРМАЛАР

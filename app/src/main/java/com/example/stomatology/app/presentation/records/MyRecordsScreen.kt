@@ -10,17 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -41,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.example.stomatology.app.domain.model.toUiText
+import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @Composable
@@ -51,19 +47,17 @@ fun MyRecordsScreen(
     val state by viewModel.uiState.collectAsState()
 
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
-    val tabs = listOf("Все", "Предстоящие", "Прошлые")
+    val tabs = listOf("Барлығы", "Алдағы", "Өткен")
 
     val visibleAppointments = when (selectedTabIndex) {
         1 -> state.appointments.filter {
             it.status == AppointmentStatus.PENDING || it.status == AppointmentStatus.ACCEPTED
         }
-
         2 -> state.appointments.filter {
             it.status == AppointmentStatus.COMPLETED ||
-                    it.status == AppointmentStatus.REJECTED ||
-                    it.status == AppointmentStatus.CANCELLED
+                it.status == AppointmentStatus.REJECTED ||
+                it.status == AppointmentStatus.CANCELLED
         }
-
         else -> state.appointments
     }
 
@@ -85,20 +79,12 @@ fun MyRecordsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Мои записи",
+                        text = "Менің жазбаларым",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menu",
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
+                    AppBackButton(onClick = onBack, onPrimary = true)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -113,10 +99,7 @@ fun MyRecordsScreen(
                             selected = selectedTabIndex == index,
                             onClick = { selectedTabIndex = index },
                             text = {
-                                Text(
-                                    text = title,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text(text = title, fontWeight = FontWeight.Bold)
                             },
                             selectedContentColor = Color.White,
                             unselectedContentColor = Color.White.copy(alpha = 0.7f)
@@ -128,28 +111,22 @@ fun MyRecordsScreen(
 
         when {
             state.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = PrimaryBlue)
                 }
             }
-
             state.error != null -> {
-                EmptyRecordsState(text = state.error ?: "Ошибка загрузки")
+                EmptyRecordsState(text = state.error ?: "Жүктеу қатесі")
             }
-
             visibleAppointments.isEmpty() -> {
                 EmptyRecordsState(
                     text = when (selectedTabIndex) {
-                        1 -> "Нет предстоящих записей"
-                        2 -> "Нет прошлых записей"
-                        else -> "У вас пока нет записей"
+                        1 -> "Алдағы жазбалар жоқ"
+                        2 -> "Өткен жазбалар жоқ"
+                        else -> "Әзірге жазбалар жоқ"
                     }
                 )
             }
-
             else -> {
                 LazyColumn(
                     modifier = Modifier
@@ -174,21 +151,14 @@ private fun EmptyRecordsState(text: String) {
             .padding(top = 80.dp),
         contentAlignment = Alignment.TopCenter
     ) {
-        Text(
-            text = text,
-            color = Color.Gray,
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Text(text = text, color = Color.Gray, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
 @Composable
-private fun AppointmentCard(
-    appointment: Appointment
-) {
+private fun AppointmentCard(appointment: Appointment) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = PrimaryBlue),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -208,31 +178,27 @@ private fun AppointmentCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Врач: ${appointment.doctorName.ifBlank { "Не указан" }}",
+                text = "Дәрігер: ${appointment.doctorName.ifBlank { "Көрсетілмеген" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
-
             Text(
-                text = "Услуга: ${appointment.service.ifBlank { "-" }}",
+                text = "Қызмет: ${appointment.service.ifBlank { "-" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
-
             Text(
-                text = "Дата: ${appointment.date.ifBlank { "-" }}",
+                text = "Күні: ${appointment.date.ifBlank { "-" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
-
             Text(
-                text = "Время: ${appointment.time.ifBlank { "-" }}",
+                text = "Уақыты: ${appointment.time.ifBlank { "-" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
 
             Spacer(modifier = Modifier.height(10.dp))
-
             StatusBadge(status = appointment.status)
         }
     }

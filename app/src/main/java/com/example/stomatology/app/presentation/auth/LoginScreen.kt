@@ -4,12 +4,30 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,26 +44,16 @@ import com.example.stomatology.app.presentation.theme.PrimaryBlue
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (String) -> Unit,
     onNavigateToRegister: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-
     val state by viewModel.state.collectAsState()
-
-    LaunchedEffect(state.isSuccess) {
-        if (state.isSuccess && state.role != null) {
-            onLoginSuccess(state.role!!)
-            viewModel.clearSuccess()
-        }
-    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-
         TopWaveBackground()
 
         Column(
@@ -54,23 +62,21 @@ fun LoginScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.Start
         ) {
-
             Spacer(modifier = Modifier.height(100.dp))
 
             Text(
-                text = "Login",
+                text = "Кіру",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Text(
-                text = "Login with",
+                text = "Аккаунтқа кіру",
                 fontSize = 14.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
             )
 
-            // Social buttons
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 SocialButton("G", Color.Red)
                 SocialButton("f", Color.Blue)
@@ -78,9 +84,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // EMAIL
-            Text("Email", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-
+            Text("Электрондық пошта", fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
@@ -95,15 +99,13 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // PASSWORD
-            Text("Password", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-
+            Text("Құпия сөз", fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = state.password,
                 onValueChange = viewModel::onPasswordChange,
-                placeholder = { Text("Enter password") },
+                placeholder = { Text("Құпия сөзді енгізіңіз") },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(12.dp),
@@ -111,19 +113,17 @@ fun LoginScreen(
                 singleLine = true
             )
 
-            // Forgot
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 TextButton(onClick = { }) {
-                    Text("Forgot Password?", color = PrimaryBlue)
+                    Text("Құпия сөзді ұмыттыңыз ба?", color = PrimaryBlue)
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // ❌ ERROR
             state.error?.let {
                 Text(
                     text = it,
@@ -132,11 +132,8 @@ fun LoginScreen(
                 )
             }
 
-            // 🔄 LOADING / BUTTON
             if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
             } else {
                 Button(
                     onClick = { viewModel.login() },
@@ -146,21 +143,19 @@ fun LoginScreen(
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                 ) {
-                    Text("Войти", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Кіру", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
-            // NAVIGATION
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 24.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Don't have an account? ", color = Color.Gray)
-
+                Text("Тіркелмегенсіз бе? ", color = Color.Gray)
                 Text(
-                    text = "Create an account",
+                    text = "Аккаунт ашу",
                     color = PrimaryBlue,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable { onNavigateToRegister() }
@@ -190,10 +185,7 @@ fun TopWaveBackground() {
             moveTo(0f, 0f)
             lineTo(size.width, 0f)
             lineTo(size.width, size.height * 0.5f)
-            quadraticBezierTo(
-                size.width * 0.7f, size.height,
-                0f, size.height * 0.8f
-            )
+            quadraticBezierTo(size.width * 0.7f, size.height, 0f, size.height * 0.8f)
             close()
         }
         drawPath(path = path, color = PrimaryBlue)

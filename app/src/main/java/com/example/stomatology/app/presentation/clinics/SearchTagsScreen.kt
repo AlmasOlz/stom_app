@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.stomatology.app.presentation.components.AppBackButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +43,7 @@ fun SearchTagsScreen(
     val tags = listOf(
         "Имплантация",
         "Кариес",
-        "Чистка",
+        "Тазалау",
         "Ортодонтия",
         "Хирургия"
     )
@@ -55,15 +55,11 @@ fun SearchTagsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Поиск тегов") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
-                    }
-                },
+                title = { Text("Тегтерді іздеу") },
+                navigationIcon = { AppBackButton(onClick = onBack) },
                 actions = {
                     IconButton(onClick = {}) {
-                        Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.Black)
+                        Icon(Icons.Default.Search, contentDescription = "Іздеу", tint = Color.Black)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
@@ -83,7 +79,7 @@ fun SearchTagsScreen(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Search") },
+                label = { Text("Іздеу") },
                 singleLine = true
             )
 

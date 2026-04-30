@@ -16,14 +16,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -33,8 +29,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,26 +76,10 @@ fun RemindersScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier
-                            .background(
-                                Color.DarkGray.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(50)
-                            )
-                            .size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-
+                    AppBackButton(onClick = onBack, onPrimary = true)
                     Spacer(modifier = Modifier.width(16.dp))
-
                     Text(
-                        text = "Ежедневные\nнапоминания",
+                        text = "Күнделікті\nеске салғыштар",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
@@ -117,19 +98,19 @@ fun RemindersScreen(
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             ReminderSection(
-                title = "Чистка зубов",
+                title = "Тіс тазалау",
                 items = listOf(
-                    ReminderToggle("Утром", brushMorning) {
+                    ReminderToggle("Таңертең", brushMorning) {
                         brushMorning = it
                         if (it) {
-                            activeReminderKey = "Утром"
+                            activeReminderKey = "Таңертең"
                             showTimePicker = true
                         }
                     },
-                    ReminderToggle("Вечером", brushEvening) {
+                    ReminderToggle("Кешке", brushEvening) {
                         brushEvening = it
                         if (it) {
-                            activeReminderKey = "Вечером"
+                            activeReminderKey = "Кешке"
                             showTimePicker = true
                         }
                     }
@@ -139,13 +120,13 @@ fun RemindersScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             ReminderSection(
-                title = "Mouthwash",
-                note = "Note: Best used at a different time to brushing. For example after lunch.",
+                title = "Ауыз шайғыш",
+                note = "Тісті тазалаудан бөлек уақытта қолданыңыз (мысалы, түстен кейін).",
                 items = listOf(
-                    ReminderToggle("Reminder", mouthwash) {
+                    ReminderToggle("Еске салу", mouthwash) {
                         mouthwash = it
                         if (it) {
-                            activeReminderKey = "Mouthwash"
+                            activeReminderKey = "Ауыз шайғыш"
                             showTimePicker = true
                         }
                     }
@@ -155,13 +136,13 @@ fun RemindersScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             ReminderSection(
-                title = "Flossing",
-                note = "Note: Best to set after meals once a day.",
+                title = "Тіс жібі",
+                note = "Күніне 1 рет, тамақтан кейін орнату ұсынылады.",
                 items = listOf(
-                    ReminderToggle("Reminder", flossing) {
+                    ReminderToggle("Еске салу", flossing) {
                         flossing = it
                         if (it) {
-                            activeReminderKey = "Flossing"
+                            activeReminderKey = "Тіс жібі"
                             showTimePicker = true
                         }
                     }
@@ -172,7 +153,7 @@ fun RemindersScreen(
 
             if (activeReminderKey.isNotBlank()) {
                 Text(
-                    text = "Активное напоминание: $activeReminderKey",
+                    text = "Белсенді еске салғыш: $activeReminderKey",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
@@ -188,7 +169,7 @@ fun RemindersScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
             ) {
                 Text(
-                    text = "Save",
+                    text = "Сақтау",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
@@ -198,7 +179,7 @@ fun RemindersScreen(
         if (showTimePicker) {
             TimePickerDialog(
                 onDismiss = { showTimePicker = false },
-                onSave = { _, _, _ ->
+                onSave = { _, _ ->
                     showTimePicker = false
                 }
             )
@@ -228,12 +209,7 @@ fun ReminderSection(
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(
-                modifier = Modifier.padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 24.dp,
-                    bottom = 16.dp
-                )
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 16.dp)
             ) {
                 note?.let {
                     Text(
@@ -293,11 +269,10 @@ fun ReminderSection(
 @Composable
 fun TimePickerDialog(
     onDismiss: () -> Unit,
-    onSave: (String, String, Boolean) -> Unit
+    onSave: (String, String) -> Unit
 ) {
     var hours by rememberSaveable { mutableStateOf("08") }
     var minutes by rememberSaveable { mutableStateOf("00") }
-    var isAm by rememberSaveable { mutableStateOf(true) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -310,7 +285,7 @@ fun TimePickerDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Введите время",
+                    text = "Уақытты енгізіңіз (24 сағат)",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -322,12 +297,15 @@ fun TimePickerDialog(
                     OutlinedTextField(
                         value = hours,
                         onValueChange = {
-                            if (it.length <= 2 && it.all { ch -> ch.isDigit() }) hours = it
+                            if (it.length <= 2 && it.all { ch -> ch.isDigit() }) {
+                                hours = it
+                            }
                         },
                         modifier = Modifier.width(70.dp),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center)
+                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+                        label = { Text("Сағ") }
                     )
 
                     Text(
@@ -339,39 +317,33 @@ fun TimePickerDialog(
                     OutlinedTextField(
                         value = minutes,
                         onValueChange = {
-                            if (it.length <= 2 && it.all { ch -> ch.isDigit() }) minutes = it
+                            if (it.length <= 2 && it.all { ch -> ch.isDigit() }) {
+                                minutes = it
+                            }
                         },
                         modifier = Modifier.width(70.dp),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center)
+                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+                        label = { Text("Мин") }
                     )
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Button(
-                        onClick = { isAm = !isAm },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isAm) PrimaryBlue else Color.LightGray
-                        )
-                    ) {
-                        Text(
-                            text = if (isAm) "AM" else "PM",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
-                    onClick = { onSave(hours, minutes, isAm) },
+                    onClick = {
+                        val hh = hours.toIntOrNull()
+                        val mm = minutes.toIntOrNull()
+                        if (hh != null && mm != null && hh in 0..23 && mm in 0..59) {
+                            onSave(hh.toString().padStart(2, '0'), mm.toString().padStart(2, '0'))
+                        }
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        text = "Сохранить",
+                        text = "Сақтау",
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )

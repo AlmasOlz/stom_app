@@ -2,7 +2,17 @@ package com.example.stomatology.app.presentation.tracking
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -15,7 +25,11 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -25,17 +39,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.stomatology.app.R
 import com.example.stomatology.app.presentation.profile.UserProfileViewModel
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
+import java.text.DateFormatSymbols
+import java.util.Calendar
+import java.util.Locale
 
 data class VideoTopic(
     val title: String,
+    val route: String,
     val icon: ImageVector
+)
+
+data class DayProgress(
+    val label: String,
+    val isCompleted: Boolean
 )
 
 @Composable
@@ -47,10 +72,11 @@ fun TrackingScreen(
     profileViewModel: UserProfileViewModel = hiltViewModel()
 ) {
     val profileState by profileViewModel.uiState.collectAsState()
+    val fallbackUserName = stringResource(R.string.tracking_user_fallback)
 
     val userName = profileState.user.firstName
         .ifBlank { profileState.user.displayName }
-        .ifBlank { "Пользователь" }
+        .ifBlank { fallbackUserName }
 
     if (profileState.isLoading) {
         Box(
@@ -80,17 +106,27 @@ private fun TrackingContent(
     onNavigateToLesson: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
+    val weeklyProgress = remember { buildCurrentWeekProgress() }
+    val currentStep = weeklyProgress.count { it.isCompleted }.coerceAtLeast(1)
+    val totalSteps = weeklyProgress.size
 
-    val days = remember { listOf("M", "T", "W", "T", "F", "S", "S") }
-    val completedDays = remember { listOf(true, true, true, true, false, false, false) }
-
-    val videoTopics = remember {
-        listOf(
-            VideoTopic("Brushing", Icons.Default.PlayArrow),
-            VideoTopic("Flossing", Icons.Default.PlayArrow),
-            VideoTopic("Mouth wash", Icons.Default.PlayArrow)
+    val videoTopics = listOf(
+        VideoTopic(
+            title = stringResource(R.string.tracking_video_brushing),
+            route = "brushing",
+            icon = Icons.Default.PlayArrow
+        ),
+        VideoTopic(
+            title = stringResource(R.string.tracking_video_flossing),
+            route = "flossing",
+            icon = Icons.Default.PlayArrow
+        ),
+        VideoTopic(
+            title = stringResource(R.string.tracking_video_mouthwash),
+            route = "mouthwash",
+            icon = Icons.Default.PlayArrow
         )
-    }
+    )
 
     Column(
         modifier = Modifier
@@ -105,7 +141,7 @@ private fun TrackingContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Привет $userName 👋",
+                text = stringResource(R.string.tracking_greeting, userName),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -129,14 +165,14 @@ private fun TrackingContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Нынешний прогресс",
+                    text = stringResource(R.string.tracking_current_progress),
                     color = PrimaryBlue,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = "for Tooth Taken Out",
+                    text = stringResource(R.string.tracking_treatment_tooth_extraction),
                     color = Color.DarkGray,
                     fontSize = 14.sp
                 )
@@ -146,7 +182,7 @@ private fun TrackingContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
-                        contentDescription = "Step",
+                        contentDescription = null,
                         tint = PrimaryBlue,
                         modifier = Modifier.size(24.dp)
                     )
@@ -154,7 +190,7 @@ private fun TrackingContent(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = "Step 3/4",
+                        text = stringResource(R.string.tracking_step_format, currentStep, totalSteps),
                         color = PrimaryBlue,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
@@ -164,7 +200,7 @@ private fun TrackingContent(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "Еженедельный прогресс:",
+                    text = stringResource(R.string.tracking_weekly_progress),
                     color = PrimaryBlue,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
@@ -176,36 +212,8 @@ private fun TrackingContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    days.forEachIndexed { index, day ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(
-                                        if (completedDays[index]) PrimaryBlue
-                                        else Color.LightGray.copy(alpha = 0.5f)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (completedDays[index]) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            Text(
-                                text = day,
-                                fontSize = 12.sp,
-                                color = if (completedDays[index]) PrimaryBlue else Color.Gray
-                            )
-                        }
+                    weeklyProgress.forEach { day ->
+                        DayProgressItem(day)
                     }
                 }
             }
@@ -214,7 +222,7 @@ private fun TrackingContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Перейти на:",
+            text = stringResource(R.string.tracking_navigation_title),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
@@ -227,14 +235,14 @@ private fun TrackingContent(
         ) {
             ActionCard(
                 modifier = Modifier.weight(1f),
-                title = "Советы",
+                title = stringResource(R.string.tracking_tips),
                 icon = Icons.Default.Info,
                 onClick = onNavigateToInstructions
             )
 
             ActionCard(
                 modifier = Modifier.weight(1f),
-                title = "Ежедневные\nнапоминания",
+                title = stringResource(R.string.tracking_daily_reminders),
                 icon = Icons.Default.Notifications,
                 onClick = onNavigateToReminders
             )
@@ -243,7 +251,7 @@ private fun TrackingContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Или вы можете посмотреть\nвидеоролики по следующей теме:",
+            text = stringResource(R.string.tracking_videos_title),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 22.sp
@@ -258,12 +266,45 @@ private fun TrackingContent(
             items(videoTopics) { topic ->
                 VideoCard(
                     topic = topic,
-                    onClick = { onNavigateToLesson(topic.title.lowercase()) }
+                    onClick = { onNavigateToLesson(topic.route) }
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun DayProgressItem(day: DayProgress) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(
+                    if (day.isCompleted) PrimaryBlue
+                    else Color.LightGray.copy(alpha = 0.5f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (day.isCompleted) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = day.label,
+            fontSize = 12.sp,
+            color = if (day.isCompleted) PrimaryBlue else Color.Gray
+        )
     }
 }
 
@@ -343,5 +384,32 @@ fun VideoCard(
                 )
             }
         }
+    }
+}
+
+private fun buildCurrentWeekProgress(
+    locale: Locale = Locale.getDefault(),
+    today: Calendar = Calendar.getInstance()
+): List<DayProgress> {
+    val calendar = today.clone() as Calendar
+    val offsetFromMonday = (7 + calendar.get(Calendar.DAY_OF_WEEK) - Calendar.MONDAY) % 7
+    val currentDayIndex = offsetFromMonday
+    val shortWeekdays = DateFormatSymbols(locale).shortWeekdays
+
+    calendar.add(Calendar.DAY_OF_MONTH, -offsetFromMonday)
+
+    return (0..6).map { index ->
+        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+        val label = shortWeekdays[dayOfWeek]
+            .replace(".", "")
+            .take(2)
+            .uppercase(locale)
+
+        calendar.add(Calendar.DAY_OF_MONTH, 1)
+
+        DayProgress(
+            label = label,
+            isCompleted = index <= currentDayIndex
+        )
     }
 }

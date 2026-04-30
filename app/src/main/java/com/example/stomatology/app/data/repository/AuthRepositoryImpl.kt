@@ -1,6 +1,11 @@
 package com.example.stomatology.app.data.repository
 
+import com.example.stomatology.app.core.firebase.FirestoreCollections
+import com.example.stomatology.app.core.firebase.FirestoreFields
+import com.example.stomatology.app.core.firebase.RoleRequestStatus
+import com.example.stomatology.app.core.firebase.UserRoles
 import com.example.stomatology.app.domain.repository.AuthRepository
+import com.example.stomatology.app.domain.repository.DoctorRequestInfo
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -25,34 +30,61 @@ class AuthRepositoryImpl @Inject constructor(
         pass: String,
         firstName: String,
         lastName: String,
-        phone: String
+        phone: String,
+        requestedRole: String,
+        specialty: String,
+        clinicId: String
     ): Result<Boolean> {
+        val authResult = try {
+            firebaseAuth.createUserWithEmailAndPassword(email, pass).await()
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+
+        val user = authResult.user
+            ?: return Result.failure(Exception("UID not found"))
+        val uid = user.uid
+
         return try {
-            val authResult = firebaseAuth.createUserWithEmailAndPassword(email, pass).await()
-
-            val uid = authResult.user?.uid
-                ?: return Result.failure(Exception("UID not found"))
-
-            val displayName = "$firstName $lastName"
+            val displayName = "$firstName $lastName".trim()
+            val now = System.currentTimeMillis()
+            val normalizedRequestedRole = if (requestedRole == UserRoles.DOCTOR) {
+                UserRoles.DOCTOR
+            } else {
+                UserRoles.PATIENT
+            }
+            val requestStatus = if (normalizedRequestedRole == UserRoles.DOCTOR) {
+                RoleRequestStatus.PENDING
+            } else {
+                RoleRequestStatus.NONE
+            }
 
             val userData = hashMapOf(
-                "uid" to uid,
-                "email" to email,
-                "role" to "patient",
-                "firstName" to firstName,
-                "lastName" to lastName,
-                "displayName" to displayName,
-                "phone" to phone,
-                "createdAt" to System.currentTimeMillis()
+                FirestoreFields.UID to uid,
+                FirestoreFields.EMAIL to email,
+                FirestoreFields.ROLE to UserRoles.PATIENT,
+                FirestoreFields.REQUESTED_ROLE to normalizedRequestedRole,
+                FirestoreFields.REQUEST_STATUS to requestStatus,
+                FirestoreFields.FIRST_NAME to firstName,
+                FirestoreFields.LAST_NAME to lastName,
+                FirestoreFields.DISPLAY_NAME to displayName,
+                FirestoreFields.PHONE to phone,
+                FirestoreFields.SPECIALTY to specialty.trim(),
+                FirestoreFields.CLINIC_ID to clinicId.trim(),
+                FirestoreFields.CREATED_AT to now,
+                FirestoreFields.UPDATED_AT to now
             )
 
-            firestore.collection("users")
+            firestore.collection(FirestoreCollections.USERS)
                 .document(uid)
                 .set(userData)
                 .await()
 
             Result.success(true)
         } catch (e: Exception) {
+            runCatching {
+                firebaseAuth.currentUser?.delete()?.await()
+            }
             Result.failure(e)
         }
     }
@@ -71,15 +103,38 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun getUserRole(uid: String): Result<String> {
         return try {
-            val snapshot = firestore.collection("users")
+            val snapshot = firestore.collection(FirestoreCollections.USERS)
                 .document(uid)
                 .get()
                 .await()
 
-            val role = snapshot.getString("role")
+            val role = snapshot.getString(FirestoreFields.ROLE)
                 ?: return Result.failure(Exception("Role not found"))
 
             Result.success(role)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getDoctorRequestInfo(uid: String): Result<DoctorRequestInfo> {
+        return try {
+            val snapshot = firestore.collection(FirestoreCollections.USERS)
+                .document(uid)
+                .get()
+                .await()
+
+            val requestedRole = snapshot.getString(FirestoreFields.REQUESTED_ROLE)
+                ?: UserRoles.PATIENT
+            val requestStatus = snapshot.getString(FirestoreFields.REQUEST_STATUS)
+                ?: RoleRequestStatus.NONE
+
+            Result.success(
+                DoctorRequestInfo(
+                    requestedRole = requestedRole,
+                    requestStatus = requestStatus
+                )
+            )
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -95,17 +150,17 @@ class AuthRepositoryImpl @Inject constructor(
     ): Result<Unit> {
         return try {
             val data = hashMapOf(
-                "uid" to uid,
-                "email" to email,
-                "role" to role,
-                "firstName" to firstName,
-                "lastName" to lastName,
-                "displayName" to "$firstName $lastName",
-                "phone" to phone,
-                "createdAt" to System.currentTimeMillis()
+                FirestoreFields.UID to uid,
+                FirestoreFields.EMAIL to email,
+                FirestoreFields.ROLE to role,
+                FirestoreFields.FIRST_NAME to firstName,
+                FirestoreFields.LAST_NAME to lastName,
+                FirestoreFields.DISPLAY_NAME to "$firstName $lastName",
+                FirestoreFields.PHONE to phone,
+                FirestoreFields.CREATED_AT to System.currentTimeMillis()
             )
 
-            firestore.collection("users")
+            firestore.collection(FirestoreCollections.USERS)
                 .document(uid)
                 .set(data)
                 .await()

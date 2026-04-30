@@ -8,24 +8,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class DoctorBottomNavItem(
     val route: String,
-    val icon: ImageVector,
-    val label: String
+    val icon: ImageVector
 ) {
     object Dashboard : DoctorBottomNavItem(
         DoctorRoutes.Dashboard,
-        Icons.Default.Home,
-        "Главная"
+        Icons.Default.Home
     )
 
     object Appointments : DoctorBottomNavItem(
         DoctorRoutes.Appointments,
-        Icons.AutoMirrored.Filled.List,
-        "Записи"
+        Icons.AutoMirrored.Filled.List
     )
 
     object Profile : DoctorBottomNavItem(
         DoctorRoutes.Profile,
-        Icons.Default.Person,
-        "Профиль"
+        Icons.Default.Person
     )
 }

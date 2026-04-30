@@ -1,6 +1,8 @@
 package com.example.stomatology.app.presentation.navigation
 
 import android.net.Uri
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -8,6 +10,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -16,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -24,6 +28,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.stomatology.app.core.firebase.UserRoles
+import com.example.stomatology.app.presentation.admin.AdminDashboardScreen
 import com.example.stomatology.app.presentation.ai_analysis.AiAnalysisScreen
 import com.example.stomatology.app.presentation.auth.AuthViewModel
 import com.example.stomatology.app.presentation.auth.LoginScreen
@@ -40,22 +46,24 @@ import com.example.stomatology.app.presentation.education.InstructionsScreen
 import com.example.stomatology.app.presentation.education.LessonScreen
 import com.example.stomatology.app.presentation.home.HomeScreen
 import com.example.stomatology.app.presentation.notifications.NotificationHistoryScreen
+import com.example.stomatology.app.presentation.profile.NotificationSettingsScreen
+import com.example.stomatology.app.presentation.profile.ProfileEditScreen
 import com.example.stomatology.app.presentation.profile.ProfileScreen
 import com.example.stomatology.app.presentation.records.MyRecordsScreen
+import com.example.stomatology.app.presentation.recovery.OtherServicesScreen
 import com.example.stomatology.app.presentation.reminders.RemindersScreen
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 import com.example.stomatology.app.presentation.tracking.TrackingScreen
 
 sealed class BottomNavItem(
     val route: String,
-    val icon: ImageVector,
-    val label: String
+    val icon: ImageVector
 ) {
-    object Notifications : BottomNavItem("notifications", Icons.Default.Notifications, "Уведомления")
-    object Dashboard : BottomNavItem("dashboard", Icons.Default.Menu, "Прогресс")
-    object Home : BottomNavItem("home", Icons.Default.Home, "Главная")
-    object Records : BottomNavItem("records", Icons.AutoMirrored.Filled.List, "Записи")
-    object Profile : BottomNavItem("profile", Icons.Default.Person, "Профиль")
+    object Notifications : BottomNavItem("notifications", Icons.Default.Notifications)
+    object Dashboard : BottomNavItem("dashboard", Icons.Default.Menu)
+    object Home : BottomNavItem("home", Icons.Default.Home)
+    object Records : BottomNavItem("records", Icons.AutoMirrored.Filled.List)
+    object Profile : BottomNavItem("profile", Icons.Default.Person)
 }
 
 @Composable
@@ -78,27 +86,54 @@ fun AppNavigation() {
         DoctorRoutes.Profile
     )
 
+    val adminBottomBarRoutes = listOf(
+        AdminRoutes.Dashboard,
+        AdminRoutes.Profile
+    )
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    LaunchedEffect(authState.isSuccess, authState.role) {
+    LaunchedEffect(Unit) {
+        authViewModel.bootstrapSession()
+    }
+
+    LaunchedEffect(authState.isSuccess, authState.role, currentRoute) {
         if (authState.isSuccess) {
+            val popRoute = if (currentRoute == "bootstrap") "bootstrap" else "login"
             when (authState.role) {
-                "doctor" -> {
+                UserRoles.DOCTOR -> {
                     navController.navigate(DoctorRoutes.Dashboard) {
-                        popUpTo("login") { inclusive = true }
+                        popUpTo(popRoute) { inclusive = true }
                         launchSingleTop = true
                     }
                     authViewModel.clearSuccess()
                 }
 
-                "patient" -> {
+                UserRoles.PATIENT -> {
                     navController.navigate(BottomNavItem.Home.route) {
-                        popUpTo("login") { inclusive = true }
+                        popUpTo(popRoute) { inclusive = true }
                         launchSingleTop = true
                     }
                     authViewModel.clearSuccess()
                 }
+
+                UserRoles.ADMIN -> {
+                    navController.navigate(AdminRoutes.Dashboard) {
+                        popUpTo(popRoute) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    authViewModel.clearSuccess()
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(authState.isSessionChecked, authState.isSuccess, currentRoute) {
+        if (authState.isSessionChecked && !authState.isSuccess && currentRoute == "bootstrap") {
+            navController.navigate("login") {
+                popUpTo("bootstrap") { inclusive = true }
+                launchSingleTop = true
             }
         }
     }
@@ -113,17 +148,29 @@ fun AppNavigation() {
                 currentRoute in doctorBottomBarRoutes -> {
                     DoctorBottomNavigationBar(navController, currentRoute)
                 }
+
+                currentRoute in adminBottomBarRoutes -> {
+                    AdminBottomNavigationBar(navController, currentRoute)
+                }
             }
         }
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = "login",
+            startDestination = "bootstrap",
             modifier = Modifier.padding(padding)
         ) {
+            composable("bootstrap") {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = PrimaryBlue)
+                }
+            }
+
             composable("login") {
                 LoginScreen(
-                    onLoginSuccess = {},
                     onNavigateToRegister = {
                         navController.navigate("register")
                     },
@@ -133,9 +180,6 @@ fun AppNavigation() {
 
             composable("register") {
                 RegistrationScreen(
-                    onRegisterSuccess = {
-                        // Navigation is handled by LaunchedEffect above
-                    },
                     onNavigateToLogin = {
                         navController.popBackStack()
                     },
@@ -151,7 +195,18 @@ fun AppNavigation() {
                     onNavigateToAi = {
                         navController.navigate("ai_analysis")
                     },
-                    onNavigateToOtherServices = {}
+                    onNavigateToOtherServices = {
+                        navController.navigate("other_services")
+                    }
+                )
+            }
+
+            composable("other_services") {
+                OtherServicesScreen(
+                    onBack = { navController.popBackStack() },
+                    onServiceSelected = { service ->
+                        navController.navigate("clinics/${Uri.encode(service)}")
+                    }
                 )
             }
 
@@ -250,8 +305,33 @@ fun AppNavigation() {
 
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
-                    onEditProfile = {},
-                    onNotifications = {}
+                    onEditProfile = { navController.navigate("profile_edit") },
+                    onNotifications = {
+                        navController.navigate(BottomNavItem.Notifications.route) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onOpenSettings = { navController.navigate("profile_settings") }
+                )
+            }
+
+            composable("profile_edit") {
+                ProfileEditScreen(
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() }
+                )
+            }
+
+            composable("profile_settings") {
+                NotificationSettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onSignOut = {
+                        authViewModel.signOut()
+                        navController.navigate("login") {
+                            popUpTo("bootstrap") { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
 
@@ -294,8 +374,21 @@ fun AppNavigation() {
 
             composable(DoctorRoutes.Profile) {
                 ProfileScreen(
-                    onEditProfile = {},
-                    onNotifications = {}
+                    onEditProfile = { navController.navigate("profile_edit") },
+                    onNotifications = {},
+                    onOpenSettings = { navController.navigate("profile_settings") }
+                )
+            }
+
+            composable(AdminRoutes.Dashboard) {
+                AdminDashboardScreen()
+            }
+
+            composable(AdminRoutes.Profile) {
+                ProfileScreen(
+                    onEditProfile = { navController.navigate("profile_edit") },
+                    onNotifications = {},
+                    onOpenSettings = { navController.navigate("profile_settings") }
                 )
             }
         }
@@ -321,7 +414,7 @@ fun BottomNavigationBar(
                 icon = {
                     Icon(
                         imageVector = item.icon,
-                        contentDescription = item.label
+                        contentDescription = null
                     )
                 },
                 selected = currentRoute == item.route,
@@ -355,7 +448,40 @@ fun DoctorBottomNavigationBar(
                 icon = {
                     Icon(
                         imageVector = item.icon,
-                        contentDescription = item.label
+                        contentDescription = null
+                    )
+                },
+                selected = currentRoute == item.route,
+                onClick = {
+                    if (currentRoute != item.route) {
+                        navController.navigate(item.route) {
+                            popUpTo(navController.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun AdminBottomNavigationBar(
+    navController: NavHostController,
+    currentRoute: String?
+) {
+    val items = listOf(
+        AdminBottomNavItem.Dashboard,
+        AdminBottomNavItem.Profile
+    )
+
+    NavigationBar(containerColor = PrimaryBlue) {
+        items.forEach { item ->
+            NavigationBarItem(
+                icon = {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = null
                     )
                 },
                 selected = currentRoute == item.route,

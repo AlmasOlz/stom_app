@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -23,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,20 +51,16 @@ fun ClinicListScreen(
                 title = {
                     Column {
                         Text(
-                            text = if (serviceName.isBlank()) "Все стоматологии" else serviceName,
+                            text = if (serviceName.isBlank()) "Барлық клиникалар" else serviceName,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
                         if (serviceName.isNotBlank()) {
-                            Text("Найдено: ${filteredClinics.size}", fontSize = 12.sp, color = Color.Gray)
+                            Text("Табылды: ${filteredClinics.size}", fontSize = 12.sp, color = Color.Gray)
                         }
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
+                navigationIcon = { AppBackButton(onClick = onBack) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         }
@@ -82,7 +78,7 @@ fun ClinicListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                placeholder = { Text("Поиск клиники или адреса...") },
+                placeholder = { Text("Клиника немесе мекенжай іздеу...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryBlue) },
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -99,7 +95,7 @@ fun ClinicListScreen(
                 }
             } else if (filteredClinics.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("К сожалению, ничего не найдено", color = Color.Gray)
+                    Text("Өкінішке орай, ештеңе табылмады", color = Color.Gray)
                 }
             } else {
                 LazyColumn(
@@ -189,7 +185,7 @@ fun ClinicCardItem(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "($reviews отзывов)",
+                        text = "($reviews пікір)",
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
@@ -218,7 +214,7 @@ fun ClinicCardItem(
 
                 // Баға белгісі
                 Text(
-                    text = "от $price ₸",
+                    text = "$price ₸ бастап",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = PrimaryBlue

@@ -2,51 +2,53 @@ package com.example.stomatology.app.presentation.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.example.stomatology.app.R
 import com.example.stomatology.app.presentation.profile.UserProfileViewModel
 import com.example.stomatology.app.presentation.theme.BackgroundGray
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
+import androidx.annotation.DrawableRes
 
 @Composable
 fun HomeScreen(
@@ -59,7 +61,7 @@ fun HomeScreen(
 
     val userName = profileState.user.firstName
         .ifBlank { profileState.user.displayName }
-        .ifBlank { "Пользователь" }
+        .ifBlank { "Пайдаланушы" }
 
     if (profileState.isLoading) {
         Box(
@@ -75,6 +77,7 @@ fun HomeScreen(
 
     HomeContent(
         userName = userName,
+        photoUrl = profileState.user.photoUrl,
         onNavigateToClinics = onNavigateToClinics,
         onNavigateToAi = onNavigateToAi,
         onNavigateToOtherServices = onNavigateToOtherServices
@@ -84,6 +87,7 @@ fun HomeScreen(
 @Composable
 private fun HomeContent(
     userName: String,
+    photoUrl: String,
     onNavigateToClinics: (String) -> Unit,
     onNavigateToAi: () -> Unit,
     onNavigateToOtherServices: () -> Unit
@@ -92,12 +96,12 @@ private fun HomeContent(
 
     val services = remember {
         listOf(
-            ServiceItem("Удаление зуба", Icons.Default.Build) { onNavigateToClinics("Удаление зуба") },
-            ServiceItem("Протезирование", Icons.Default.Face) { onNavigateToClinics("Протезирование") },
-            ServiceItem("Пломба / Канал", Icons.Default.CheckCircle) { onNavigateToClinics("Пломба / Канал") },
-            ServiceItem("Имплант", Icons.Default.Star) { onNavigateToClinics("Имплант") },
-            ServiceItem("AI анализ", Icons.Default.Favorite) { onNavigateToAi() },
-            ServiceItem("Брекеты", Icons.Default.Face) { onNavigateToClinics("Брекеты") }
+            ServiceItem("Тіс жұлу", ServiceIcon.Drawable(R.drawable.ic_tooth_extract)) { onNavigateToClinics("Тіс жұлу") },
+            ServiceItem("Протездеу", ServiceIcon.Drawable(R.drawable.ic_prosthesis)) { onNavigateToClinics("Протездеу") },
+            ServiceItem("Пломба / Канал", ServiceIcon.Drawable(R.drawable.ic_root_canal)) { onNavigateToClinics("Пломба / Канал") },
+            ServiceItem("Имплант", ServiceIcon.Drawable(R.drawable.ic_implant)) { onNavigateToClinics("Имплант") },
+            ServiceItem("AI талдау", ServiceIcon.Vector(Icons.Default.AutoAwesome)) { onNavigateToAi() },
+            ServiceItem("Брекет", ServiceIcon.Drawable(R.drawable.ic_braces)) { onNavigateToClinics("Брекет") }
         )
     }
 
@@ -116,17 +120,15 @@ private fun HomeContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Привет $userName 👋",
+                text = "Сәлем, $userName",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
 
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray)
+            HomeAvatar(
+                userName = userName,
+                photoUrl = photoUrl
             )
         }
 
@@ -141,7 +143,7 @@ private fun HomeContent(
                 .padding(24.dp)
         ) {
             Text(
-                text = "Пожалуйста,\nвыберите область, в\nкоторой вам\nнеобходима помощь.",
+                text = "Өзіңізге керек қызметті таңдаңыз.",
                 color = Color.White,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
@@ -151,7 +153,7 @@ private fun HomeContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "У меня есть",
+            text = "Қызметтер",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
@@ -199,14 +201,14 @@ private fun HomeContent(
             ) {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
+                    contentDescription = "Іздеу",
                     tint = PrimaryBlue
                 )
 
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Text(
-                    text = "Поиск других процедур",
+                    text = "Басқа қызметтерді іздеу",
                     fontSize = 16.sp,
                     color = Color.DarkGray,
                     fontWeight = FontWeight.Medium
@@ -218,46 +220,93 @@ private fun HomeContent(
     }
 }
 
+@Composable
+private fun HomeAvatar(
+    userName: String,
+    photoUrl: String
+) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Color.LightGray),
+        contentAlignment = Alignment.Center
+    ) {
+        if (photoUrl.isNotBlank()) {
+            AsyncImage(
+                model = photoUrl,
+                contentDescription = "User avatar",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Text(
+                text = userName.firstOrNull()?.uppercase() ?: "U",
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
 data class ServiceItem(
     val title: String,
-    val icon: ImageVector,
+    val icon: ServiceIcon,
     val onClick: () -> Unit
 )
+
+sealed interface ServiceIcon {
+    data class Vector(val imageVector: ImageVector) : ServiceIcon
+    data class Drawable(@DrawableRes val resId: Int) : ServiceIcon
+}
 
 @Composable
 fun ServiceCard(
     service: ServiceItem,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Card(
         modifier = modifier
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White)
-            .clickable { service.onClick() }
-            .padding(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+            .aspectRatio(0.95f)
+            .clickable { service.onClick() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
     ) {
-        Spacer(modifier = Modifier.height(4.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 10.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Spacer(modifier = Modifier.height(4.dp))
+            when (val icon = service.icon) {
+                is ServiceIcon.Vector -> Icon(
+                    imageVector = icon.imageVector,
+                    contentDescription = service.title,
+                    tint = PrimaryBlue,
+                    modifier = Modifier.size(42.dp)
+                )
 
-        Icon(
-            imageVector = service.icon,
-            contentDescription = service.title,
-            tint = PrimaryBlue,
-            modifier = Modifier.size(30.dp)
-        )
+                is ServiceIcon.Drawable -> Image(
+                    painter = painterResource(id = icon.resId),
+                    contentDescription = service.title,
+                    modifier = Modifier.size(42.dp)
+                )
+            }
 
-        Text(
-            text = service.title,
-            fontSize = 11.sp,
-            textAlign = TextAlign.Center,
-            color = Color.Black,
-            fontWeight = FontWeight.Medium,
-            maxLines = 2,
-            lineHeight = 14.sp
-        )
+            Text(
+                text = service.title,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+                color = Color.Black,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                lineHeight = 16.sp
+            )
 
-        Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+        }
     }
 }

@@ -1,0 +1,67 @@
+[
+  {
+    "id": "1",
+    "name": "OneDent",
+    "rating": 4.7,
+    "reviews": 120,
+    "address": "Астана, Жиембет жырау 2",
+    "services": ["Удаление зуба", "Пломба / Канал", "Брекеты"],
+    "imageUrl": "https://taplink.st/a/6/0/1/a/14e4be.png?195",
+    "priceFrom": 12000,
+    "description": "Современная стоматология с терапией, удалением и ортодонтией.",
+    "latitude": 51.1537,
+    "longitude": 71.4303
+  },
+  {
+    "id": "2",
+    "name": "Dent Lux",
+    "rating": 4.5,
+    "reviews": 98,
+    "address": "Астана, Абай 15",
+    "services": ["Протезирование", "Имплант"],
+    "imageUrl": "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=600&auto=format&fit=crop",
+    "priceFrom": 35000,
+    "description": "Клиника с упором на имплантацию и протезирование.",
+    "latitude": 51.1690,
+    "longitude": 71.4183
+  },
+  {
+    "id": "3",
+    "name": "Astana Stom",
+    "rating": 4.6,
+    "reviews": 76,
+    "address": "Астана, Мангилик Ел 30",
+    "services": ["Удаление зуба", "Имплант"],
+    "imageUrl": "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=600&auto=format&fit=crop",
+    "priceFrom": 18000,
+    "description": "Хирургические услуги и имплантация.",
+    "latitude": 51.1031,
+    "longitude": 71.4036
+  },
+  {
+    "id": "4",
+    "name": "Agzamov Clinic",
+    "rating": 4.8,
+    "reviews": 154,
+    "address": "Астана, Кабанбай батыр 44",
+    "services": ["Пломба / Канал", "Протезирование", "Брекеты"],
+    "imageUrl": "https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=600&auto=format&fit=crop",
+    "priceFrom": 15000,
+    "description": "Широкий спектр услуг от лечения каналов до брекетов.",
+    "latitude": 51.1089,
+    "longitude": 71.4194
+  },
+  {
+    "id": "5",
+    "name": "Dent Love",
+    "rating": 4.4,
+    "reviews": 63,
+    "address": "Астана, Сарайшық 10",
+    "services": ["Брекеты", "Пломба / Канал"],
+    "imageUrl": "https://images.unsplash.com/photo-1609840114035-3c981b782dfe?q=80&w=600&auto=format&fit=crop",
+    "priceFrom": 14000,
+    "description": "Уютная клиника для лечения и ортодонтии.",
+    "latitude": 51.1369,
+    "longitude": 71.4309
+  }
+]

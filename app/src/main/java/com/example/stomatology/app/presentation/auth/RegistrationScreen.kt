@@ -2,13 +2,41 @@ package com.example.stomatology.app.presentation.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,24 +47,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.stomatology.app.core.firebase.UserRoles
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationScreen(
-    onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
+    var clinicMenuExpanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(state.isSuccess) {
-        if (state.isSuccess) {
-            onRegisterSuccess()
-            viewModel.clearSuccess()
+    LaunchedEffect(state.requestedRole) {
+        if (state.requestedRole == UserRoles.DOCTOR) {
+            viewModel.loadClinicsIfNeeded()
         }
     }
+
+    val selectedClinicName = state.clinics
+        .firstOrNull { clinic -> clinic.id == state.clinicId }
+        ?.name
+        .orEmpty()
 
     Box(
         modifier = Modifier
@@ -55,30 +88,72 @@ fun RegistrationScreen(
             Spacer(modifier = Modifier.height(90.dp))
 
             Text(
-                text = "Регистрация",
+                text = "Тіркелу",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
 
             Text(
-                text = "Создайте аккаунт пациента",
+                text = if (state.requestedRole == UserRoles.DOCTOR) {
+                    "Дәрігер аккаунтына өтінім"
+                } else {
+                    "Пациент аккаунтын ашу"
+                },
                 fontSize = 14.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
             )
 
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { viewModel.onRequestedRoleChange(UserRoles.PATIENT) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (state.requestedRole == UserRoles.PATIENT) {
+                            PrimaryBlue.copy(alpha = 0.12f)
+                        } else {
+                            Color.Transparent
+                        }
+                    )
+                ) {
+                    Text(
+                        text = "Пациент",
+                        color = if (state.requestedRole == UserRoles.PATIENT) PrimaryBlue else Color.DarkGray
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { viewModel.onRequestedRoleChange(UserRoles.DOCTOR) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (state.requestedRole == UserRoles.DOCTOR) {
+                            PrimaryBlue.copy(alpha = 0.12f)
+                        } else {
+                            Color.Transparent
+                        }
+                    )
+                ) {
+                    Text(
+                        text = "Дәрігер",
+                        color = if (state.requestedRole == UserRoles.DOCTOR) PrimaryBlue else Color.DarkGray
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             AuthTextField(
-                label = "Имя",
+                label = "Аты",
                 value = state.firstName,
-                placeholder = "Алмас",
+                placeholder = "Атыңыз",
                 onValueChange = viewModel::onFirstNameChange
             )
 
             AuthTextField(
-                label = "Фамилия",
+                label = "Тегі",
                 value = state.lastName,
-                placeholder = "Олжабай",
+                placeholder = "Тегіңіз",
                 onValueChange = viewModel::onLastNameChange
             )
 
@@ -91,20 +166,72 @@ fun RegistrationScreen(
             )
 
             AuthTextField(
-                label = "Email",
+                label = "Электрондық пошта",
                 value = state.email,
                 placeholder = "example@gmail.com",
                 keyboardType = KeyboardType.Email,
                 onValueChange = viewModel::onEmailChange
             )
 
-            Text("Password", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            if (state.requestedRole == UserRoles.DOCTOR) {
+                AuthTextField(
+                    label = "Мамандық",
+                    value = state.specialty,
+                    placeholder = "Терапевт, хирург, ортодонт...",
+                    onValueChange = viewModel::onSpecialtyChange
+                )
+
+                Text("Клиника", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = clinicMenuExpanded,
+                    onExpandedChange = { clinicMenuExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedClinicName,
+                        onValueChange = {},
+                        readOnly = true,
+                        placeholder = {
+                            Text(
+                                if (state.isClinicsLoading) "Клиникалар жүктелуде..." else "Клиниканы таңдаңыз"
+                            )
+                        },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = clinicMenuExpanded)
+                        },
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    DropdownMenu(
+                        expanded = clinicMenuExpanded,
+                        onDismissRequest = { clinicMenuExpanded = false }
+                    ) {
+                        state.clinics.forEach { clinic ->
+                            DropdownMenuItem(
+                                text = { Text(clinic.name) },
+                                onClick = {
+                                    viewModel.onClinicIdChange(clinic.id)
+                                    clinicMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Text("Құпия сөз", fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = state.password,
                 onValueChange = viewModel::onPasswordChange,
-                placeholder = { Text("Enter password") },
+                placeholder = { Text("Құпия сөзді енгізіңіз") },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(12.dp),
@@ -121,7 +248,7 @@ fun RegistrationScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Создавая аккаунт, вы соглашаетесь с условиями сервиса и политикой конфиденциальности",
+                text = "Аккаунт ашу арқылы сервис шарттары мен құпиялылық саясатына келісесіз",
                 fontSize = 12.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
@@ -131,6 +258,18 @@ fun RegistrationScreen(
             )
 
             Spacer(modifier = Modifier.height(20.dp))
+
+            state.message?.let {
+                Text(
+                    text = it,
+                    color = Color(0xFF2E7D32),
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.clearMessage() }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             state.error?.let {
                 Text(
@@ -158,11 +297,24 @@ fun RegistrationScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                 ) {
                     Text(
-                        "Создать аккаунт",
+                        if (state.requestedRole == UserRoles.DOCTOR) "Өтінім жіберу" else "Аккаунт ашу",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
+                }
+            }
+
+            if (state.doctorRequestSubmitted) {
+                Spacer(modifier = Modifier.height(12.dp))
+                TextButton(
+                    onClick = {
+                        viewModel.clearMessage()
+                        onNavigateToLogin()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Кіру бетіне өту")
                 }
             }
 
@@ -172,10 +324,9 @@ fun RegistrationScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text("Already have an account? ", color = Color.Gray)
-
+                Text("Аккаунтыңыз бар ма? ", color = Color.Gray)
                 Text(
-                    text = "Sign in",
+                    text = "Кіру",
                     color = PrimaryBlue,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.clickable { onNavigateToLogin() }

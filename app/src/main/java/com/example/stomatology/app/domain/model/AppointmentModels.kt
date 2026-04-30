@@ -1,5 +1,7 @@
 package com.example.stomatology.app.domain.model
 
+import com.example.stomatology.app.core.booking.BookingDefaults
+
 
 enum class AppointmentStatus {
     PENDING,
@@ -21,7 +23,7 @@ data class Appointment(
     val service: String = "",
     val date: String = "",
     val time: String = "",
-    val duration: String = "1 час",
+    val duration: String = BookingDefaults.DEFAULT_DURATION,
     val status: AppointmentStatus = AppointmentStatus.PENDING,
     val rejectionReason: String? = null,
     val createdAt: Long = System.currentTimeMillis(),

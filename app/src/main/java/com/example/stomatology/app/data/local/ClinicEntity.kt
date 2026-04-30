@@ -13,5 +13,7 @@ data class ClinicEntity(
     val services: String,
     val imageUrl: String = "",
     val priceFrom: Int,
-    val description: String
+    val description: String,
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
 )

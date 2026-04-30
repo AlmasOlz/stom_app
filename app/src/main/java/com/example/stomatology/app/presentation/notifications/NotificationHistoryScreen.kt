@@ -1,17 +1,34 @@
 package com.example.stomatology.app.presentation.notifications
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,9 +37,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
-// Хабарлама түріне қарай деректер моделі
 data class NotificationItem(
     val title: String,
     val description: String,
@@ -37,33 +54,30 @@ enum class NotificationType { MISSED, SUCCESS, INFO }
 fun NotificationHistoryScreen(onBack: () -> Unit) {
     val notifications = listOf(
         NotificationItem(
-            title = "Пропущено",
-            description = "Вы пропустили утреннюю чистку зубов. Не забывайте о гигиене!",
-            time = "8:30 AM",
+            title = "Өткізіп алдыңыз",
+            description = "Таңертеңгі тіс тазалауды өткізіп алдыңыз. Гигиенаны ұмытпаңыз.",
+            time = "08:30",
             type = NotificationType.MISSED
         ),
         NotificationItem(
-            title = "Пропущено",
-            description = "Вы пропустили очистку зубных протезов. Рекомендуется делать это дважды в день.",
-            time = "8:00 AM",
+            title = "Өткізіп алдыңыз",
+            description = "Тіс протезін тазалауды өткізіп алдыңыз. Күніне екі рет жасау ұсынылады.",
+            time = "08:00",
             type = NotificationType.MISSED
         ),
         NotificationItem(
-            title = "Поздравляем!",
-            description = "Отлично! Вы используете ополаскиватель для рта уже 7 дней подряд.",
-            time = "9:00 AM",
+            title = "Құттықтаймыз!",
+            description = "Тамаша! Сіз 7 күн қатарынан ауыз шайғышты қолданып жүрсіз.",
+            time = "09:00",
             type = NotificationType.SUCCESS
         )
     )
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Уведомления", fontWeight = FontWeight.Bold, color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Back", tint = Color.White)
-                    }
-                },
+                title = { Text("Хабарламалар", fontWeight = FontWeight.Bold, color = Color.White) },
+                navigationIcon = { AppBackButton(onClick = onBack, onPrimary = true) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = PrimaryBlue)
             )
         },
@@ -77,7 +91,13 @@ fun NotificationHistoryScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Text("Today", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom = 4.dp))
+                Text(
+                    "Бүгін",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
             }
             items(notifications) { notification ->
                 NotificationCard(notification)
@@ -88,14 +108,13 @@ fun NotificationHistoryScreen(onBack: () -> Unit) {
 
 @Composable
 fun NotificationCard(item: NotificationItem) {
-    // Қателерді түзету үшін стандартты иконкаларды қолданамыз
     val icon: ImageVector
     val iconColor: Color
     val backgroundColor: Color
 
     when (item.type) {
         NotificationType.MISSED -> {
-            icon = Icons.Default.Warning // 'Error' орнына 'Warning'
+            icon = Icons.Default.Warning
             iconColor = Color(0xFFE53935)
             backgroundColor = Color(0xFFFFEBEE)
         }
@@ -105,7 +124,7 @@ fun NotificationCard(item: NotificationItem) {
             backgroundColor = Color(0xFFE8F5E9)
         }
         NotificationType.INFO -> {
-            icon = Icons.Default.Info // 'NotificationsActive' орнына 'Info'
+            icon = Icons.Default.Info
             iconColor = PrimaryBlue
             backgroundColor = Color(0xFFE3F2FD)
         }
