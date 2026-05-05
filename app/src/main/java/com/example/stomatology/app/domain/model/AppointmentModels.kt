@@ -5,10 +5,25 @@ import com.example.stomatology.app.core.booking.BookingDefaults
 
 enum class AppointmentStatus {
     PENDING,
-    ACCEPTED,
-    REJECTED,
+    CONFIRMED,
     COMPLETED,
-    CANCELLED
+    CANCELLED,
+    NO_SHOW,
+    RESCHEDULED;
+
+    companion object {
+        fun fromStorage(value: String?): AppointmentStatus {
+            return when (value?.trim()?.uppercase()) {
+                "PENDING" -> PENDING
+                "CONFIRMED", "ACCEPTED" -> CONFIRMED
+                "COMPLETED" -> COMPLETED
+                "CANCELLED", "REJECTED" -> CANCELLED
+                "NO_SHOW" -> NO_SHOW
+                "RESCHEDULED" -> RESCHEDULED
+                else -> PENDING
+            }
+        }
+    }
 }
 
 data class Appointment(
@@ -25,7 +40,14 @@ data class Appointment(
     val time: String = "",
     val duration: String = BookingDefaults.DEFAULT_DURATION,
     val status: AppointmentStatus = AppointmentStatus.PENDING,
-    val rejectionReason: String? = null,
+    val cancelledBy: String? = null,
+    val cancelReason: String? = null,
+    val cancelledAt: Long? = null,
+    val completedAt: Long? = null,
+    val rescheduledFromId: String? = null,
+    val previousDate: String? = null,
+    val previousTime: String? = null,
+    val statusChangedBy: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

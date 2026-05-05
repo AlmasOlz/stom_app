@@ -55,4 +55,7 @@
         <item>Тампонды алған соң дәрігер жазып берген дәрілерді қабылдаңыз.</item>
         <item>24 сағаттан соң күніне 3-4 рет жылы тұзды сумен шайыңыз.</item>
     </string-array>
+    <string name="clinic_working_hours_default">Дс-Сб: 09:00 - 20:00</string>
+    <string name="clinic_status_open">Ашық</string>
+    <string name="clinic_status_closed">Жабық</string>
 </resources>

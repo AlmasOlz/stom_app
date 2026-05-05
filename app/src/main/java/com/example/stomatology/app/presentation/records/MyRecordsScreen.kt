@@ -1,6 +1,7 @@
 package com.example.stomatology.app.presentation.records
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,20 +11,35 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,9 +51,13 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.AppointmentStatus
+import com.example.stomatology.app.domain.model.AvailableSlot
 import com.example.stomatology.app.domain.model.toUiText
+import com.example.stomatology.app.presentation.booking.convertMillisToDate
 import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
+import java.util.Calendar
+import java.util.TimeZone
 
 @Composable
 fun MyRecordsScreen(
@@ -48,17 +68,35 @@ fun MyRecordsScreen(
 
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val tabs = listOf("Барлығы", "Алдағы", "Өткен")
+    var rescheduleTarget by remember { mutableStateOf<Appointment?>(null) }
+    var cancelTarget by remember { mutableStateOf<Appointment?>(null) }
+    var rescheduleDate by rememberSaveable { mutableStateOf("") }
+    var rescheduleTime by rememberSaveable { mutableStateOf("") }
+    var cancelReason by rememberSaveable { mutableStateOf("") }
+    var showRescheduleDatePicker by remember { mutableStateOf(false) }
 
     val visibleAppointments = when (selectedTabIndex) {
         1 -> state.appointments.filter {
-            it.status == AppointmentStatus.PENDING || it.status == AppointmentStatus.ACCEPTED
+            it.status == AppointmentStatus.PENDING ||
+                it.status == AppointmentStatus.CONFIRMED ||
+                it.status == AppointmentStatus.RESCHEDULED
         }
         2 -> state.appointments.filter {
             it.status == AppointmentStatus.COMPLETED ||
-                it.status == AppointmentStatus.REJECTED ||
-                it.status == AppointmentStatus.CANCELLED
+                it.status == AppointmentStatus.CANCELLED ||
+                it.status == AppointmentStatus.NO_SHOW
         }
         else -> state.appointments
+    }
+
+    LaunchedEffect(state.actionState) {
+        if (state.actionState == MyRecordActionState.Success) {
+            rescheduleTarget = null
+            cancelTarget = null
+            rescheduleDate = ""
+            rescheduleTime = ""
+            cancelReason = ""
+        }
     }
 
     Column(
@@ -98,9 +136,7 @@ fun MyRecordsScreen(
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = { selectedTabIndex = index },
-                            text = {
-                                Text(text = title, fontWeight = FontWeight.Bold)
-                            },
+                            text = { Text(text = title, fontWeight = FontWeight.Bold) },
                             selectedContentColor = Color.White,
                             unselectedContentColor = Color.White.copy(alpha = 0.7f)
                         )
@@ -115,7 +151,7 @@ fun MyRecordsScreen(
                     CircularProgressIndicator(color = PrimaryBlue)
                 }
             }
-            state.error != null -> {
+            state.error != null && visibleAppointments.isEmpty() -> {
                 EmptyRecordsState(text = state.error ?: "Жүктеу қатесі")
             }
             visibleAppointments.isEmpty() -> {
@@ -134,12 +170,126 @@ fun MyRecordsScreen(
                         .padding(horizontal = 16.dp, vertical = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(visibleAppointments) { appointment ->
-                        AppointmentCard(appointment = appointment)
+                    items(visibleAppointments, key = { item -> item.id }) { appointment ->
+                        AppointmentCard(
+                            appointment = appointment,
+                            onReschedule = {
+                                rescheduleTarget = appointment
+                                rescheduleDate = appointment.date
+                                rescheduleTime = ""
+                                viewModel.loadRescheduleSlots(appointment, appointment.date)
+                            },
+                            onCancel = {
+                                cancelTarget = appointment
+                                cancelReason = ""
+                            }
+                        )
                     }
                 }
             }
         }
+    }
+
+    if (showRescheduleDatePicker) {
+        RescheduleDatePickerDialog(
+            onDatePicked = { date ->
+                showRescheduleDatePicker = false
+                rescheduleDate = date
+                rescheduleTime = ""
+                rescheduleTarget?.let { appointment ->
+                    viewModel.loadRescheduleSlots(appointment, date)
+                }
+            },
+            onDismiss = { showRescheduleDatePicker = false }
+        )
+    }
+
+    if (rescheduleTarget != null) {
+        AlertDialog(
+            onDismissRequest = { rescheduleTarget = null },
+            title = { Text("Уақытты өзгерту") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Жаңа күн мен уақытты таңдаңыз",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    OutlinedTextField(
+                        value = rescheduleDate,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Күн") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showRescheduleDatePicker = true }
+                    )
+                    OutlinedButton(onClick = { showRescheduleDatePicker = true }) {
+                        Text("Күнді таңдау")
+                    }
+
+                    if (state.isSlotsLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                    } else {
+                        SlotChoiceGrid(
+                            selectedTime = rescheduleTime,
+                            slots = state.rescheduleSlots,
+                            onSelect = { time -> rescheduleTime = time }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val target = rescheduleTarget ?: return@TextButton
+                    viewModel.rescheduleAppointment(
+                        appointmentId = target.id,
+                        newDate = rescheduleDate,
+                        newTime = rescheduleTime
+                    )
+                }) {
+                    Text("Сақтау")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { rescheduleTarget = null }) {
+                    Text("Жабу")
+                }
+            }
+        )
+    }
+
+    if (cancelTarget != null) {
+        AlertDialog(
+            onDismissRequest = { cancelTarget = null },
+            title = { Text("Жазбадан бас тарту") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Бас тарту себебін жазыңыз")
+                    OutlinedTextField(
+                        value = cancelReason,
+                        onValueChange = { value -> cancelReason = value },
+                        label = { Text("Себеп") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val target = cancelTarget ?: return@TextButton
+                    viewModel.cancelAppointment(
+                        appointmentId = target.id,
+                        reason = cancelReason
+                    )
+                }) {
+                    Text("Растау")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { cancelTarget = null }) {
+                    Text("Жабу")
+                }
+            }
+        )
     }
 }
 
@@ -156,7 +306,15 @@ private fun EmptyRecordsState(text: String) {
 }
 
 @Composable
-private fun AppointmentCard(appointment: Appointment) {
+private fun AppointmentCard(
+    appointment: Appointment,
+    onReschedule: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val isActive = appointment.status == AppointmentStatus.PENDING ||
+        appointment.status == AppointmentStatus.CONFIRMED ||
+        appointment.status == AppointmentStatus.RESCHEDULED
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -176,7 +334,6 @@ private fun AppointmentCard(appointment: Appointment) {
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-
             Text(
                 text = "Дәрігер: ${appointment.doctorName.ifBlank { "Көрсетілмеген" }}",
                 fontSize = 14.sp,
@@ -198,8 +355,29 @@ private fun AppointmentCard(appointment: Appointment) {
                 color = Color.White.copy(alpha = 0.9f)
             )
 
+            if (appointment.previousDate != null || appointment.previousTime != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Алдыңғы уақыт: ${appointment.previousDate.orEmpty()} ${appointment.previousTime.orEmpty()}",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            }
+
             Spacer(modifier = Modifier.height(10.dp))
             StatusBadge(status = appointment.status)
+
+            if (isActive) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onReschedule) {
+                        Text("Уақытты өзгерту")
+                    }
+                    OutlinedButton(onClick = onCancel) {
+                        Text("Бас тарту")
+                    }
+                }
+            }
         }
     }
 }
@@ -220,5 +398,97 @@ private fun StatusBadge(status: AppointmentStatus) {
             fontWeight = FontWeight.Bold,
             fontSize = 13.sp
         )
+    }
+}
+
+@Composable
+private fun SlotChoiceGrid(
+    selectedTime: String,
+    slots: List<AvailableSlot>,
+    onSelect: (String) -> Unit
+) {
+    if (slots.isEmpty()) {
+        Text("Бос слот жоқ", color = Color.Gray)
+        return
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        slots.chunked(3).forEach { rowItems ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                rowItems.forEach { slot ->
+                    val enabled = slot.isEnabled
+                    val selected = selectedTime == slot.time
+                    val bg = when {
+                        !enabled -> Color(0xFFE2E6EA)
+                        selected -> PrimaryBlue
+                        else -> Color(0xFFF1F3F5)
+                    }
+                    val fg = when {
+                        !enabled -> Color(0xFF8A8F98)
+                        selected -> Color.White
+                        else -> Color.DarkGray
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .width(88.dp)
+                            .background(bg, RoundedCornerShape(10.dp))
+                            .clickable(enabled = enabled) { onSelect(slot.time) }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = slot.time, color = fg, fontWeight = FontWeight.Medium)
+                            if (!enabled) {
+                                Text("Толы", color = fg, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RescheduleDatePickerDialog(
+    onDatePicked: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                return utcTimeMillis >= calendar.timeInMillis
+            }
+
+            override fun isSelectableYear(year: Int): Boolean {
+                return year >= Calendar.getInstance().get(Calendar.YEAR)
+            }
+        }
+    )
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                val date = datePickerState.selectedDateMillis?.let { convertMillisToDate(it) }.orEmpty()
+                onDatePicked(date)
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Жабу")
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
     }
 }

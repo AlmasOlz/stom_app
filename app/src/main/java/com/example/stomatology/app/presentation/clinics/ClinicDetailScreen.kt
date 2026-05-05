@@ -50,20 +50,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.stomatology.app.R
 import com.example.stomatology.app.domain.model.Clinic
 import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import java.time.DayOfWeek
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -144,6 +153,7 @@ fun ClinicDetailScreen(
                 } else {
                     null
                 }
+                val canRenderMap = hasLocation && remember(context) { canRenderEmbeddedMap(context) }
                 val cameraPositionState = markerPosition?.let { latLng ->
                     rememberCameraPositionState {
                         position = CameraPosition.fromLatLngZoom(latLng, 15f)
@@ -233,9 +243,12 @@ fun ClinicDetailScreen(
 
                         InfoItem(Icons.Default.LocationOn, clinic.address)
                         Spacer(modifier = Modifier.height(16.dp))
-                        InfoItem(Icons.Default.DateRange, "Дс-Сб: 09:00 - 20:00", status = "Ашық")
+                        InfoItem(
+                            icon = Icons.Default.DateRange,
+                            text = stringResource(id = R.string.clinic_working_hours_default)
+                        )
 
-                        if (hasLocation && markerPosition != null && cameraPositionState != null) {
+                        if (hasLocation && markerPosition != null && cameraPositionState != null && canRenderMap) {
                             Spacer(modifier = Modifier.height(20.dp))
                             Text("Орналасуы", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(8.dp))
@@ -258,6 +271,9 @@ fun ClinicDetailScreen(
                                     )
                                 }
                             }
+                        } else if (hasLocation) {
+                            Spacer(modifier = Modifier.height(20.dp))
+                            MapUnavailableCard(onOpenMap = { openClinicInMaps(context, clinic) })
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -355,7 +371,29 @@ fun ClinicActionBtn(
 }
 
 @Composable
-fun InfoItem(icon: ImageVector, text: String, status: String? = null) {
+fun InfoItem(
+    icon: ImageVector,
+    text: String,
+    status: String? = null,
+    statusColor: Color = Color(0xFF4CAF50)
+) {
+    val isWorkingHoursLine = remember(text) { parseWorkingHours(text) != null }
+    val isOpenNow = remember(text) { isClinicOpenNow(text) }
+    val resolvedStatus = if (isWorkingHoursLine) {
+        if (isOpenNow) {
+            stringResource(id = R.string.clinic_status_open)
+        } else {
+            stringResource(id = R.string.clinic_status_closed)
+        }
+    } else {
+        status
+    }
+    val resolvedStatusColor = if (isWorkingHoursLine) {
+        if (isOpenNow) Color(0xFF2E7D32) else Color(0xFFC62828)
+    } else {
+        statusColor
+    }
+
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
@@ -368,11 +406,121 @@ fun InfoItem(icon: ImageVector, text: String, status: String? = null) {
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(text, fontSize = 15.sp, color = Color.Black)
-            if (status != null) {
-                Text(status, fontSize = 13.sp, color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold)
+            resolvedStatus?.let { value ->
+                Text(value, fontSize = 13.sp, color = resolvedStatusColor, fontWeight = FontWeight.Bold)
             }
         }
     }
+}
+
+@Composable
+private fun MapUnavailableCard(onOpenMap: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.6f)),
+        color = Color(0xFFF8F9FB)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Карта қолжетімсіз",
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black
+            )
+            Text(
+                text = "Google Maps уақытша ашылмады. Орналасуды сыртқы картадан ашыңыз.",
+                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+            OutlinedButton(onClick = onOpenMap) {
+                Text("Картада ашу")
+            }
+        }
+    }
+}
+
+private fun isClinicOpenNow(workingHoursText: String, now: LocalDateTime = LocalDateTime.now()): Boolean {
+    val schedule = parseWorkingHours(workingHoursText) ?: return false
+    if (now.dayOfWeek !in schedule.workingDays) {
+        return false
+    }
+
+    val currentTime = now.toLocalTime()
+    return !currentTime.isBefore(schedule.openTime) && currentTime.isBefore(schedule.closeTime)
+}
+
+private data class ClinicSchedule(
+    val workingDays: Set<DayOfWeek>,
+    val openTime: LocalTime,
+    val closeTime: LocalTime
+)
+
+private fun parseWorkingHours(raw: String): ClinicSchedule? {
+    val pattern = Regex(
+        pattern = "^\\s*([\\p{L}]{1,3})\\s*-\\s*([\\p{L}]{1,3})\\s*:\\s*(\\d{1,2}:\\d{2})\\s*-\\s*(\\d{1,2}:\\d{2})\\s*$",
+        option = RegexOption.IGNORE_CASE
+    )
+    val match = pattern.find(raw) ?: return null
+
+    val startDay = dayAbbreviationToDayOfWeek(match.groupValues[1]) ?: return null
+    val endDay = dayAbbreviationToDayOfWeek(match.groupValues[2]) ?: return null
+    val openTime = runCatching { LocalTime.parse(match.groupValues[3], DateTimeFormatter.ofPattern("H:mm")) }.getOrNull()
+        ?: return null
+    val closeTime = runCatching { LocalTime.parse(match.groupValues[4], DateTimeFormatter.ofPattern("H:mm")) }.getOrNull()
+        ?: return null
+
+    if (closeTime <= openTime) {
+        return null
+    }
+
+    return ClinicSchedule(
+        workingDays = expandDayRange(startDay, endDay),
+        openTime = openTime,
+        closeTime = closeTime
+    )
+}
+
+private fun expandDayRange(start: DayOfWeek, end: DayOfWeek): Set<DayOfWeek> {
+    val days = linkedSetOf<DayOfWeek>()
+    var day = start
+    while (true) {
+        days += day
+        if (day == end) break
+        day = day.plus(1)
+    }
+    return days
+}
+
+private fun dayAbbreviationToDayOfWeek(value: String): DayOfWeek? {
+    return when (value.lowercase(Locale.ROOT)) {
+        "дс", "пн" -> DayOfWeek.MONDAY
+        "сс", "вт" -> DayOfWeek.TUESDAY
+        "ср" -> DayOfWeek.WEDNESDAY
+        "бс", "чт" -> DayOfWeek.THURSDAY
+        "жм", "пт" -> DayOfWeek.FRIDAY
+        "сб" -> DayOfWeek.SATURDAY
+        "жс", "вс" -> DayOfWeek.SUNDAY
+        else -> null
+    }
+}
+
+private fun canRenderEmbeddedMap(context: Context): Boolean {
+    val hasGooglePlayServices = GoogleApiAvailability.getInstance()
+        .isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS
+    if (!hasGooglePlayServices) return false
+
+    val apiKey = runCatching {
+        val appInfo = context.packageManager.getApplicationInfo(
+            context.packageName,
+            android.content.pm.PackageManager.GET_META_DATA
+        )
+        appInfo.metaData?.getString("com.google.android.geo.API_KEY").orEmpty()
+    }.getOrDefault("")
+
+    return apiKey.isNotBlank()
 }
 
 private fun hasClinicLocation(clinic: Clinic): Boolean {

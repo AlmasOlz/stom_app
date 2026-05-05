@@ -3,7 +3,18 @@ package com.example.stomatology.app.presentation.booking
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -11,8 +22,34 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,12 +60,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.stomatology.app.domain.model.AvailableSlot
 import com.example.stomatology.app.domain.model.DoctorOption
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
-// Датаны форматтау функциясы
 fun convertMillisToDate(millis: Long): String {
     val formatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
     return formatter.format(Date(millis))
@@ -45,21 +85,19 @@ fun BookingScreen(
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(clinicId) {
+    LaunchedEffect(clinicId, serviceName) {
         viewModel.initClinic(clinicId)
         viewModel.onDirectionChange(serviceName)
     }
 
     LaunchedEffect(state.isBooked) {
-        if (state.isBooked) {
-            onBookingComplete()
-        }
+        if (state.isBooked) onBookingComplete()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Запись на приём", fontWeight = FontWeight.Bold) },
+                title = { Text("Қабылдауға жазылу", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = PrimaryBlue,
                     titleContentColor = Color.White
@@ -96,28 +134,23 @@ private fun BookingScreenContent(
     scrollModifier: Modifier = Modifier
 ) {
     val selectedDoctor = state.doctors.firstOrNull { doctor -> doctor.uid == state.doctorId }
+    val hasClinicId = state.clinicId.isNotBlank()
+    val clinicDataUnavailable = hasClinicId && state.clinicName.isBlank() && !state.isLoading
+    val userErrorMessage = sanitizeBookingErrorForUi(state.error)
 
-    // --- 1. ДИАЛОГ ВЫБОРА ДАТЫ ---
     if (state.showDatePicker) {
-        // Создаем состояние календаря с ограничением дат
         val datePickerState = rememberDatePickerState(
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                    // Получаем текущее время в миллисекундах
                     val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                    // Сбрасываем время до начала текущего дня (00:00:00),
-                    // чтобы сегодня тоже можно было выбрать
                     calendar.set(Calendar.HOUR_OF_DAY, 0)
                     calendar.set(Calendar.MINUTE, 0)
                     calendar.set(Calendar.SECOND, 0)
                     calendar.set(Calendar.MILLISECOND, 0)
-
-                    // Возвращаем true только если дата в календаре >= текущей даты
                     return utcTimeMillis >= calendar.timeInMillis
                 }
 
                 override fun isSelectableYear(year: Int): Boolean {
-                    // Также можно ограничить выбор года (не меньше текущего)
                     return year >= Calendar.getInstance().get(Calendar.YEAR)
                 }
             }
@@ -126,38 +159,52 @@ private fun BookingScreenContent(
         DatePickerDialog(
             onDismissRequest = { viewModel.onShowDatePicker(false) },
             confirmButton = {
-                TextButton(onClick = {
-                    val date = datePickerState.selectedDateMillis?.let { convertMillisToDate(it) } ?: ""
-                    viewModel.onDateSelected(date)
-                    viewModel.onShowDatePicker(false)
-                }) { Text("ОК", color = PrimaryBlue) }
+                TextButton(
+                    onClick = {
+                        val date = datePickerState.selectedDateMillis
+                            ?.let { millis -> convertMillisToDate(millis) }
+                            .orEmpty()
+                        viewModel.onDateSelected(date)
+                        viewModel.onShowDatePicker(false)
+                    }
+                ) {
+                    Text("OK", color = PrimaryBlue)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.onShowDatePicker(false) }) { Text("Отмена") }
+                TextButton(onClick = { viewModel.onShowDatePicker(false) }) {
+                    Text("Бас тарту")
+                }
             }
         ) {
             DatePicker(state = datePickerState)
         }
     }
 
-    // 2. УАҚЫТ ТАҢДАУ ТЕРЕЗЕСІ
     if (state.showTimePicker) {
         Dialog(onDismissRequest = { viewModel.onShowTimePicker(false) }) {
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Выберите свободное время", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = PrimaryBlue)
+                    Text(
+                        text = "Бос уақытты таңдаңыз",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = PrimaryBlue
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
 
                     TimeSelectionGrid(
                         selectedTime = state.selectedTime,
-                        timeSlots = state.availableTimeSlots,
-                        onTimeSelect = {
-                            viewModel.onTimeSelected(it)
+                        slots = state.availableSlots,
+                        onTimeSelect = { selected ->
+                            viewModel.onTimeSelected(selected)
                             viewModel.onShowTimePicker(false)
                         }
                     )
@@ -175,44 +222,74 @@ private fun BookingScreenContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Клиника: ${state.clinicName}",
+            text = if (hasClinicId) {
+                "Клиника: ${state.clinicName.ifBlank { "—" }}"
+            } else {
+                "Клиника: таңдалмаған"
+            },
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = PrimaryBlue
         )
 
-        // Дата таңдау өрісі
+        if (clinicDataUnavailable) {
+            Text(
+                text = "Клиника деректері жүктелмеді",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
         ClickableTextField(
             value = state.selectedDate,
-            label = "Дата визита",
-            placeholder = "Нажмите для выбора даты",
+            enabled = hasClinicId,
+            label = "Қабылдау күні",
+            placeholder = "Күнді таңдаңыз",
             onClick = { viewModel.onShowDatePicker(true) }
         )
 
-        // Уақыт таңдау өрісі
         ClickableTextField(
             value = state.selectedTime,
-            label = "Время приема",
-            placeholder = if (state.selectedDate.isEmpty()) "Сначала выберите дату" else "Выберите время",
-            enabled = state.selectedDate.isNotEmpty(),
+            label = "Қабылдау уақыты",
+            placeholder = if (state.selectedDate.isEmpty()) {
+                "Алдымен күнді таңдаңыз"
+            } else {
+                "Уақытты таңдаңыз"
+            },
+            enabled = hasClinicId && state.selectedDate.isNotEmpty() && state.availableSlots.isNotEmpty(),
             onClick = { viewModel.onShowTimePicker(true) }
         )
 
-        // 3. ДӘРІГЕРДІ ТАҢДАУ (DROPDOWN)
+        if (state.selectedDate.isNotBlank() && state.availableSlots.isEmpty()) {
+            Text(
+                text = "Бұл күні дәрігер қабылдамайды немесе мереке күні",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+        }
+
         Column {
-            Text("Специалист", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+            Text(
+                text = "Маман",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBlue
+            )
             Spacer(modifier = Modifier.height(4.dp))
+
             ExposedDropdownMenuBox(
                 expanded = state.isDoctorMenuExpanded,
-                onExpandedChange = { viewModel.onDoctorMenuExpandedChange(it) },
+                onExpandedChange = { expanded -> viewModel.onDoctorMenuExpandedChange(expanded) },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
                     value = state.doctorName,
                     onValueChange = {},
                     readOnly = true,
-                    placeholder = { Text("Выберите врача") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.isDoctorMenuExpanded) },
+                    placeholder = { Text("Дәрігерді таңдаңыз") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.isDoctorMenuExpanded)
+                    },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryBlue,
@@ -223,7 +300,7 @@ private fun BookingScreenContent(
                         .fillMaxWidth()
                 )
 
-                ExposedDropdownMenu(
+                DropdownMenu(
                     expanded = state.isDoctorMenuExpanded,
                     onDismissRequest = { viewModel.onDoctorMenuExpandedChange(false) },
                     modifier = Modifier.background(Color.White)
@@ -242,16 +319,14 @@ private fun BookingScreenContent(
                                     }
                                     if (doctor.experienceYears > 0) {
                                         Text(
-                                            text = "Стаж: ${doctor.experienceYears} жыл",
+                                            text = "Тәжірибе: ${doctor.experienceYears} жыл",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = Color.Gray
                                         )
                                     }
                                 }
                             },
-                            onClick = {
-                                viewModel.onDoctorSelected(doctor)
-                            }
+                            onClick = { viewModel.onDoctorSelected(doctor) }
                         )
                     }
                 }
@@ -267,39 +342,47 @@ private fun BookingScreenContent(
             }
         }
 
-        // 4. УСЛУГА (Өзгермейтін өріс)
-        ReadOnlyTextField(label = "Услуга", value = state.direction)
-
-        // 5. ПРОДОЛЖИТЕЛЬНОСТЬ (Өзгермейтін өріс)
-        ReadOnlyTextField(label = "Продолжительность", value = state.duration)
+        ReadOnlyTextField(label = "Қызмет", value = state.direction)
+        ReadOnlyTextField(label = "Ұзақтығы", value = state.duration)
 
         selectedDoctor?.let { doctor ->
             DoctorPreviewCard(doctor = doctor)
         }
 
-        state.error?.let {
-            Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
+        userErrorMessage?.let { message ->
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 14.sp
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         if (state.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = PrimaryBlue)
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                color = PrimaryBlue
+            )
         } else {
             Button(
                 onClick = { viewModel.confirmBooking() },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                enabled = state.selectedDate.isNotEmpty() && state.selectedTime.isNotEmpty() && state.doctorName.isNotEmpty(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = hasClinicId &&
+                    state.selectedDate.isNotEmpty() &&
+                    state.selectedTime.isNotEmpty() &&
+                    state.doctorName.isNotEmpty(),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
             ) {
-                Text("Подтвердить запись", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("Жазылуды растау", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
-// Көмекші компонент: Басылатын өрістер (Дата/Время)
 @Composable
 fun ClickableTextField(
     value: String,
@@ -308,7 +391,12 @@ fun ClickableTextField(
     enabled: Boolean = true,
     onClick: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = enabled) { onClick() }
+    ) {
         OutlinedTextField(
             value = value,
             onValueChange = {},
@@ -316,7 +404,7 @@ fun ClickableTextField(
             placeholder = { Text(placeholder) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            enabled = enabled,
+            enabled = false,
             readOnly = true,
             colors = OutlinedTextFieldDefaults.colors(
                 disabledContainerColor = Color.White,
@@ -325,17 +413,9 @@ fun ClickableTextField(
                 disabledLabelColor = PrimaryBlue
             )
         )
-        // Кликтерді ұстау үшін үстіне мөлдір қабат
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(RoundedCornerShape(12.dp))
-                .clickable(enabled = enabled) { onClick() }
-        )
     }
 }
 
-// Көмекші компонент: Тек оқуға арналған өрістер (Услуга/Продолжительность)
 @Composable
 fun ReadOnlyTextField(label: String, value: String) {
     OutlinedTextField(
@@ -358,31 +438,58 @@ fun ReadOnlyTextField(label: String, value: String) {
 @Composable
 fun TimeSelectionGrid(
     selectedTime: String,
-    timeSlots: List<String>,
+    slots: List<AvailableSlot>,
     onTimeSelect: (String) -> Unit
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.heightIn(max = 300.dp)
+        modifier = Modifier.heightIn(max = 320.dp)
     ) {
-        items(timeSlots) { time ->
-            val isSelected = time == selectedTime
+        items(slots, key = { slot -> slot.time }) { slot ->
+            val isSelected = slot.time == selectedTime
+            val background = when {
+                !slot.isEnabled -> Color(0xFFE2E6EA)
+                isSelected -> PrimaryBlue
+                else -> Color(0xFFF1F3F5)
+            }
+            val textColor = when {
+                !slot.isEnabled -> Color(0xFF8A8F98)
+                isSelected -> Color.White
+                else -> Color.DarkGray
+            }
+
             Surface(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { onTimeSelect(time) },
-                color = if (isSelected) PrimaryBlue else Color(0xFFF1F3F5),
+                    .clickable(enabled = slot.isEnabled) { onTimeSelect(slot.time) },
+                color = background,
                 shape = RoundedCornerShape(8.dp),
                 border = if (isSelected) null else BorderStroke(1.dp, Color.LightGray)
             ) {
-                Box(modifier = Modifier.padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+                Column(
+                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
-                        text = time,
-                        color = if (isSelected) Color.White else Color.DarkGray,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        text = slot.time,
+                        color = textColor,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
+                    if (!slot.isEnabled) {
+                        Text(
+                            text = "Толы",
+                            color = textColor,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    } else if (slot.capacity > 1) {
+                        Text(
+                            text = "${slot.bookedCount}/${slot.capacity}",
+                            color = textColor,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             }
         }
@@ -433,7 +540,7 @@ private fun DoctorPreviewCard(doctor: DoctorOption) {
                 )
                 if (doctor.experienceYears > 0) {
                     Text(
-                        text = "Стаж: ${doctor.experienceYears} жыл",
+                        text = "Тәжірибе: ${doctor.experienceYears} жыл",
                         color = Color.Gray,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -450,4 +557,24 @@ private fun DoctorPreviewCard(doctor: DoctorOption) {
             }
         }
     }
+}
+
+private fun sanitizeBookingErrorForUi(rawMessage: String?): String? {
+    val message = rawMessage?.trim().orEmpty()
+    if (message.isBlank()) return null
+
+    val lowered = message.lowercase()
+    val technicalMarkers = listOf(
+        "flow exception transparency",
+        "kotlinx.coroutines.flow",
+        "java.lang",
+        "at com.",
+        "at androidx.",
+        "exception",
+        "clinic("
+    )
+    val looksTechnical = technicalMarkers.any { marker -> lowered.contains(marker) } ||
+        message.contains('\n')
+
+    return if (looksTechnical) "Сұранысты орындау мүмкін болмады. Қайта көріңіз" else message
 }

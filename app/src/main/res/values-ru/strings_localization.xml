@@ -45,4 +45,7 @@
     <string name="profile_photo_by_url_title">Вставьте ссылку на фото</string>
     <string name="profile_photo_by_url_hint">Для бесплатного варианта используйте открытую URL-ссылку на фото</string>
     <string name="profile_photo_read_error">Не удалось прочитать фото</string>
+    <string name="clinic_working_hours_default">Пн-Сб: 09:00 - 20:00</string>
+    <string name="clinic_status_open">Открыто</string>
+    <string name="clinic_status_closed">Закрыто</string>
 </resources>

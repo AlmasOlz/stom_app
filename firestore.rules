@@ -9,6 +9,10 @@ service cloud.firestore {
       return /databases/$(database)/documents/users/$(uid);
     }
 
+    function appointmentDocPath(appointmentId) {
+      return /databases/$(database)/documents/appointments/$(appointmentId);
+    }
+
     function hasRole(roleName) {
       return signedIn()
         && exists(userDocPath(request.auth.uid))
@@ -31,6 +35,34 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function appointmentExists(appointmentId) {
+      return exists(appointmentDocPath(appointmentId));
+    }
+
+    function appointmentData(appointmentId) {
+      return get(appointmentDocPath(appointmentId)).data;
+    }
+
+    function doctorOwnsAppointment() {
+      return signedIn() && resource.data.doctorId == request.auth.uid;
+    }
+
+    function patientOwnsAppointment() {
+      return signedIn() && resource.data.patientId == request.auth.uid;
+    }
+
+    function doctorOwnsAppointmentById(appointmentId) {
+      return signedIn()
+        && appointmentExists(appointmentId)
+        && appointmentData(appointmentId).doctorId == request.auth.uid;
+    }
+
+    function patientOwnsAppointmentById(appointmentId) {
+      return signedIn()
+        && appointmentExists(appointmentId)
+        && appointmentData(appointmentId).patientId == request.auth.uid;
+    }
+
     function userEditableFieldsOnly() {
       return request.resource.data.diff(resource.data).changedKeys().hasOnly([
         "firstName",
@@ -48,24 +80,34 @@ service cloud.firestore {
     function doctorEditableAppointmentFieldsOnly() {
       return request.resource.data.diff(resource.data).changedKeys().hasOnly([
         "status",
-        "rejectionReason",
-        "updatedAt"
+        "updatedAt",
+        "statusChangedBy",
+        "cancelledBy",
+        "cancelReason",
+        "cancelledAt",
+        "completedAt",
+        "rescheduledFromId",
+        "previousDate",
+        "previousTime",
+        "date",
+        "time"
       ]);
     }
 
     function patientEditableAppointmentFieldsOnly() {
       return request.resource.data.diff(resource.data).changedKeys().hasOnly([
         "status",
-        "updatedAt"
+        "updatedAt",
+        "statusChangedBy",
+        "cancelledBy",
+        "cancelReason",
+        "cancelledAt",
+        "rescheduledFromId",
+        "previousDate",
+        "previousTime",
+        "date",
+        "time"
       ]);
-    }
-
-    function doctorOwnsAppointment() {
-      return signedIn() && resource.data.doctorId == request.auth.uid;
-    }
-
-    function patientOwnsAppointment() {
-      return signedIn() && resource.data.patientId == request.auth.uid;
     }
 
     function sameIdentityFields() {
@@ -75,10 +117,105 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt;
     }
 
+    function slotSchemaKeysOnly(data) {
+      return data.keys().hasOnly([
+        "doctorId",
+        "clinicId",
+        "date",
+        "time",
+        "capacity",
+        "bookedCount",
+        "appointmentIds",
+        "createdAt",
+        "updatedAt"
+      ]);
+    }
+
+    function validSlotCreate() {
+      return slotSchemaKeysOnly(request.resource.data)
+        && request.resource.data.doctorId is string
+        && request.resource.data.clinicId is string
+        && request.resource.data.date is string
+        && request.resource.data.time is string
+        && request.resource.data.capacity is int
+        && request.resource.data.capacity >= 1
+        && request.resource.data.bookedCount is int
+        && request.resource.data.bookedCount >= 0
+        && request.resource.data.bookedCount <= request.resource.data.capacity
+        && request.resource.data.appointmentIds is list
+        && request.resource.data.appointmentIds.size() == request.resource.data.bookedCount
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt is int;
+    }
+
+    function validSlotUpdate() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        "bookedCount",
+        "appointmentIds",
+        "updatedAt"
+      ])
+        && request.resource.data.doctorId == resource.data.doctorId
+        && request.resource.data.clinicId == resource.data.clinicId
+        && request.resource.data.date == resource.data.date
+        && request.resource.data.time == resource.data.time
+        && request.resource.data.capacity == resource.data.capacity
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.bookedCount is int
+        && request.resource.data.bookedCount >= 0
+        && request.resource.data.bookedCount <= resource.data.capacity
+        && request.resource.data.appointmentIds is list
+        && request.resource.data.appointmentIds.size() == request.resource.data.bookedCount
+        && request.resource.data.updatedAt is int;
+    }
+
+    function validStatusHistoryCreate() {
+      return request.resource.data.keys().hasOnly([
+        "from",
+        "to",
+        "by",
+        "reason",
+        "at"
+      ])
+        && request.resource.data.to is string
+        && request.resource.data.by is string
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.at is int;
+    }
+
+    function validSchedulePayload() {
+      return request.resource.data.keys().hasOnly([
+        "doctorId",
+        "clinicId",
+        "slotDurationMin",
+        "workingDays",
+        "breaks",
+        "capacityPerSlot",
+        "updatedAt"
+      ])
+        && request.resource.data.doctorId is string
+        && request.resource.data.clinicId is string
+        && request.resource.data.slotDurationMin is int
+        && request.resource.data.slotDurationMin >= 5
+        && request.resource.data.capacityPerSlot is int
+        && request.resource.data.capacityPerSlot >= 1
+        && request.resource.data.workingDays is map
+        && request.resource.data.breaks is list
+        && request.resource.data.updatedAt is int;
+    }
+
+    function validHolidayPayload() {
+      return request.resource.data.keys().hasOnly([
+        "date",
+        "reason",
+        "createdAt"
+      ])
+        && request.resource.data.date is string
+        && request.resource.data.reason is string
+        && request.resource.data.createdAt is int;
+    }
+
     match /users/{userId} {
-      allow read: if isAdmin()
-        || isSelf(userId)
-        || resource.data.role == "doctor";
+      allow read: if isAdmin() || isSelf(userId) || resource.data.role == "doctor";
 
       allow create: if isSelf(userId)
         && request.resource.data.uid == request.auth.uid
@@ -102,6 +239,33 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /doctorSchedules/{doctorId} {
+      allow read: if signedIn();
+      allow create, update: if validSchedulePayload()
+        && (
+          isAdmin()
+          || (isDoctor() && request.auth.uid == doctorId && request.resource.data.doctorId == request.auth.uid)
+        );
+      allow delete: if isAdmin();
+
+      match /holidays/{holidayId} {
+        allow read: if signedIn();
+        allow create, update: if validHolidayPayload()
+          && (
+            isAdmin()
+            || (isDoctor() && request.auth.uid == doctorId)
+          );
+        allow delete: if isAdmin() || (isDoctor() && request.auth.uid == doctorId);
+      }
+    }
+
+    match /appointmentSlots/{slotId} {
+      allow read: if signedIn();
+      allow create: if (isPatient() || isDoctor() || isAdmin()) && validSlotCreate();
+      allow update: if (isPatient() || isDoctor() || isAdmin()) && validSlotUpdate();
+      allow delete: if isAdmin();
+    }
+
     match /appointments/{appointmentId} {
       allow read: if isAdmin() || doctorOwnsAppointment() || patientOwnsAppointment();
 
@@ -111,18 +275,42 @@ service cloud.firestore {
 
       allow update: if isAdmin()
         || (
-          isDoctor() && doctorOwnsAppointment()
+          isDoctor()
+          && doctorOwnsAppointment()
           && doctorEditableAppointmentFieldsOnly()
           && sameIdentityFields()
+          && request.resource.data.status in ["CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW", "RESCHEDULED"]
         )
         || (
-          isPatient() && patientOwnsAppointment()
+          isPatient()
+          && patientOwnsAppointment()
           && patientEditableAppointmentFieldsOnly()
-          && request.resource.data.status == "CANCELLED"
+          && request.resource.data.status in ["CANCELLED", "RESCHEDULED"]
+          && request.resource.data.statusChangedBy == request.auth.uid
           && sameIdentityFields()
         );
 
       allow delete: if isAdmin();
+
+      match /statusHistory/{eventId} {
+        allow read: if isAdmin()
+          || doctorOwnsAppointmentById(appointmentId)
+          || patientOwnsAppointmentById(appointmentId);
+
+        allow create: if isAdmin()
+          || (
+            isDoctor()
+            && doctorOwnsAppointmentById(appointmentId)
+            && validStatusHistoryCreate()
+          )
+          || (
+            isPatient()
+            && patientOwnsAppointmentById(appointmentId)
+            && validStatusHistoryCreate()
+          );
+
+        allow update, delete: if isAdmin();
+      }
     }
   }
 }

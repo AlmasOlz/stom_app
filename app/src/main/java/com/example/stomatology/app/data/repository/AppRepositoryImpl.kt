@@ -21,10 +21,13 @@ import com.google.firebase.firestore.snapshots
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -86,31 +89,34 @@ class AppRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getClinics(): Flow<Resource<List<Clinic>>> = flow {
-        emit(Resource.Loading)
+    override fun getClinics(): Flow<Resource<List<Clinic>>> {
+        val remoteFlow: Flow<Resource<List<Clinic>>> = firestore.collection(FirestoreCollections.CLINICS)
+            .snapshots()
+            .map { snapshot ->
+                val remoteClinics = snapshot.documents
+                    .map { document -> document.toClinic() }
+                    .filter { clinic -> clinic.name.isNotBlank() }
 
-        seedClinicsIfNeeded()
-
-        try {
-            firestore.collection(FirestoreCollections.CLINICS)
-                .snapshots()
-                .collect { snapshot ->
-                    val remoteClinics = snapshot.documents
-                        .map { document -> document.toClinic() }
-                        .filter { clinic -> clinic.name.isNotBlank() }
-
-                    if (remoteClinics.isNotEmpty()) {
-                        syncLocalClinics(remoteClinics)
-                        emit(Resource.Success(remoteClinics))
-                    } else {
-                        val localClinics = clinicDao.getClinics().first().map { entity -> entity.toDomain() }
-                        emit(Resource.Success(localClinics))
-                    }
+                if (remoteClinics.isNotEmpty()) {
+                    syncLocalClinics(remoteClinics)
+                    Resource.Success(remoteClinics)
+                } else {
+                    val localClinics = clinicDao.getClinics().first().map { entity -> entity.toDomain() }
+                    Resource.Success(localClinics)
                 }
-        } catch (_: Exception) {
-            clinicDao.getClinics().collect { entities ->
-                emit(Resource.Success(entities.map { entity -> entity.toDomain() }))
             }
+
+        val localFallbackFlow: Flow<Resource<List<Clinic>>> = clinicDao.getClinics().map { entities ->
+            Resource.Success(entities.map { entity -> entity.toDomain() })
+        }
+
+        return flow {
+            seedClinicsIfNeeded()
+            emitAll(remoteFlow)
+        }.onStart {
+            emit(Resource.Loading)
+        }.catch {
+            emitAll(localFallbackFlow)
         }
     }
 

@@ -118,7 +118,8 @@ class DoctorDashboardViewModel @Inject constructor(
                     )
 
                     val acceptedToday = appointments.count { item ->
-                        item.status == AppointmentStatus.ACCEPTED &&
+                        (item.status == AppointmentStatus.CONFIRMED ||
+                            item.status == AppointmentStatus.RESCHEDULED) &&
                             parseAppointmentDate(item.date) == today
                     }
 
@@ -126,11 +127,15 @@ class DoctorDashboardViewModel @Inject constructor(
                         val date = parseAppointmentDate(item.date) ?: return@firstOrNull false
                         val time = parseTimeToMinutes(item.time) ?: Int.MAX_VALUE
                         val isActiveStatus =
-                            item.status == AppointmentStatus.ACCEPTED || item.status == AppointmentStatus.PENDING
+                            item.status == AppointmentStatus.CONFIRMED ||
+                                item.status == AppointmentStatus.PENDING ||
+                                item.status == AppointmentStatus.RESCHEDULED
 
                         isActiveStatus && (date > today || (date == today && time >= nowTimeMinutes))
                     } ?: sortedAppointments.firstOrNull { item ->
-                        item.status == AppointmentStatus.ACCEPTED || item.status == AppointmentStatus.PENDING
+                        item.status == AppointmentStatus.CONFIRMED ||
+                            item.status == AppointmentStatus.PENDING ||
+                            item.status == AppointmentStatus.RESCHEDULED
                     }
 
                     _uiState.update {

@@ -247,34 +247,34 @@ fun AppNavigation() {
             }
 
             composable("clinics/{serviceName}") { backStack ->
-                val service = backStack.arguments?.getString("serviceName") ?: ""
+                val service = Uri.decode(backStack.arguments?.getString("serviceName") ?: "")
 
                 ClinicListScreen(
                     serviceName = service,
                     onBack = { navController.popBackStack() },
                     onClinicClick = { id ->
-                        navController.navigate("clinic_detail/$id/${Uri.encode(service)}")
+                        navController.navigate("clinic_detail/${Uri.encode(id)}/${Uri.encode(service)}")
                     }
                 )
             }
 
             composable("clinic_detail/{clinicId}/{serviceName}") { backStack ->
-                val id = backStack.arguments?.getString("clinicId") ?: ""
-                val service = backStack.arguments?.getString("serviceName") ?: ""
+                val id = Uri.decode(backStack.arguments?.getString("clinicId") ?: "")
+                val service = Uri.decode(backStack.arguments?.getString("serviceName") ?: "")
 
                 ClinicDetailScreen(
                     clinicId = id,
                     serviceName = service,
                     onBack = { navController.popBackStack() },
                     onBookClick = { clinicId, serviceName ->
-                        navController.navigate("booking/$clinicId/${Uri.encode(serviceName)}")
+                        navController.navigate("booking/${Uri.encode(clinicId)}/${Uri.encode(serviceName)}")
                     }
                 )
             }
 
             composable("booking/{clinicId}/{serviceName}") { backStack ->
-                val id = backStack.arguments?.getString("clinicId") ?: ""
-                val service = backStack.arguments?.getString("serviceName") ?: ""
+                val id = Uri.decode(backStack.arguments?.getString("clinicId") ?: "")
+                val service = Uri.decode(backStack.arguments?.getString("serviceName") ?: "")
 
                 BookingScreen(
                     clinicId = id,

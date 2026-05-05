@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.example.stomatology.app.domain.repository.AppointmentRepository
+import com.example.stomatology.app.domain.repository.AppointmentValidationException
+import com.example.stomatology.app.domain.repository.SlotAlreadyBookedException
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,9 +16,19 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class AppointmentActionState {
+    Idle,
+    Loading,
+    Success,
+    SlotAlreadyBooked,
+    ValidationError,
+    GeneralError
+}
+
 data class DoctorAppointmentUiState(
     val appointments: List<Appointment> = emptyList(),
     val isLoading: Boolean = true,
+    val actionState: AppointmentActionState = AppointmentActionState.Idle,
     val error: String? = null
 )
 
@@ -36,14 +48,42 @@ class DoctorAppointmentViewModel @Inject constructor(
         observeAppointments()
     }
 
+    fun accept(id: String) {
+        updateStatus(id, AppointmentStatus.CONFIRMED)
+    }
+
+    fun reject(id: String) {
+        launchAction {
+            appointmentRepository.cancelAppointmentWithSlotRelease(
+                appointmentId = id,
+                changedBy = doctorId,
+                reason = "Дәрігер бас тартты"
+            )
+        }
+    }
+
+    fun complete(id: String) {
+        updateStatus(id, AppointmentStatus.COMPLETED)
+    }
+
+    fun markNoShow(id: String) {
+        launchAction {
+            appointmentRepository.markNoShow(
+                appointmentId = id,
+                changedBy = doctorId,
+                reason = "Пациент қабылдауға келмеді"
+            )
+        }
+    }
+
     private fun observeAppointments() {
         val currentDoctorId = doctorId
-
         if (currentDoctorId.isBlank()) {
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    error = "Доктор не авторизован"
+                    actionState = AppointmentActionState.ValidationError,
+                    error = "Дәрігер авторизациядан өтпеген"
                 )
             }
             return
@@ -54,9 +94,7 @@ class DoctorAppointmentViewModel @Inject constructor(
                 .collectLatest { appointments ->
                     _uiState.update {
                         it.copy(
-                            appointments = appointments.sortedByDescending { item ->
-                                item.createdAt
-                            },
+                            appointments = appointments.sortedByDescending { item -> item.createdAt },
                             isLoading = false,
                             error = null
                         )
@@ -65,25 +103,63 @@ class DoctorAppointmentViewModel @Inject constructor(
         }
     }
 
-    fun accept(id: String) {
-        updateStatus(id, AppointmentStatus.ACCEPTED)
-    }
-
-    fun reject(id: String) {
-        updateStatus(id, AppointmentStatus.REJECTED)
-    }
-
-    fun complete(id: String) {
-        updateStatus(id, AppointmentStatus.COMPLETED)
-    }
-
     private fun updateStatus(id: String, status: AppointmentStatus) {
+        launchAction {
+            appointmentRepository.updateStatus(
+                appointmentId = id,
+                status = status,
+                changedBy = doctorId
+            )
+        }
+    }
+
+    private fun launchAction(action: suspend () -> Unit) {
+        if (doctorId.isBlank()) {
+            _uiState.update {
+                it.copy(
+                    actionState = AppointmentActionState.ValidationError,
+                    error = "Дәрігер авторизациядан өтпеген"
+                )
+            }
+            return
+        }
+
         viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    actionState = AppointmentActionState.Loading,
+                    error = null
+                )
+            }
+
             try {
-                appointmentRepository.updateStatus(id, status)
+                action()
+                _uiState.update {
+                    it.copy(
+                        actionState = AppointmentActionState.Success,
+                        error = null
+                    )
+                }
+            } catch (e: SlotAlreadyBookedException) {
+                _uiState.update {
+                    it.copy(
+                        actionState = AppointmentActionState.SlotAlreadyBooked,
+                        error = "Бұл уақыт бос емес"
+                    )
+                }
+            } catch (e: AppointmentValidationException) {
+                _uiState.update {
+                    it.copy(
+                        actionState = AppointmentActionState.ValidationError,
+                        error = e.message ?: "Тексеру қатесі"
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(error = e.message ?: "Не удалось обновить статус")
+                    it.copy(
+                        actionState = AppointmentActionState.GeneralError,
+                        error = e.message ?: "Операция орындалмады"
+                    )
                 }
             }
         }

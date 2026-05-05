@@ -6,7 +6,7 @@ service firebase.storage {
     }
 
     match /profile_photos/{userId}.jpg {
-      allow read: if true;
+      allow read: if signedIn();
       allow write: if signedIn() && request.auth.uid == userId;
     }
 

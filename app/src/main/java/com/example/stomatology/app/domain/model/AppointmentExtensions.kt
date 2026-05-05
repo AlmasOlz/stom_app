@@ -2,10 +2,11 @@ package com.example.stomatology.app.domain.model
 
 fun AppointmentStatus.toUiText(): String {
     return when (this) {
-        AppointmentStatus.PENDING -> "Ожидает"
-        AppointmentStatus.ACCEPTED -> "Принята"
-        AppointmentStatus.REJECTED -> "Отклонена"
-        AppointmentStatus.COMPLETED -> "Завершена"
-        AppointmentStatus.CANCELLED -> "Отменена"
+        AppointmentStatus.PENDING -> "Күтілуде"
+        AppointmentStatus.CONFIRMED -> "Расталды"
+        AppointmentStatus.COMPLETED -> "Аяқталды"
+        AppointmentStatus.CANCELLED -> "Бас тартылды"
+        AppointmentStatus.NO_SHOW -> "Келмеді"
+        AppointmentStatus.RESCHEDULED -> "Қайта жоспарланды"
     }
 }

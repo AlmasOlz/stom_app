@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -58,34 +59,40 @@ fun DoctorAppointmentDetailScreen(
             ) {
                 Text("Жазба табылмады")
             }
-        } else {
-            AppointmentDetailContent(
-                appointment = appointment,
-                onAccept = { viewModel.accept(appointment.id) },
-                onReject = { viewModel.reject(appointment.id) },
-                onComplete = { viewModel.complete(appointment.id) },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFFF7F9FC))
-                    .padding(padding)
-                    .padding(16.dp)
-            )
+            return@Scaffold
         }
+
+        AppointmentDetailContent(
+            appointment = appointment,
+            state = state,
+            onAccept = { viewModel.accept(appointment.id) },
+            onReject = { viewModel.reject(appointment.id) },
+            onComplete = { viewModel.complete(appointment.id) },
+            onNoShow = { viewModel.markNoShow(appointment.id) },
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF7F9FC))
+                .padding(padding)
+                .padding(16.dp)
+        )
     }
 }
 
 @Composable
 private fun AppointmentDetailContent(
     appointment: Appointment,
+    state: DoctorAppointmentUiState,
     onAccept: () -> Unit,
     onReject: () -> Unit,
     onComplete: () -> Unit,
+    onNoShow: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isFinalStatus =
-        appointment.status == AppointmentStatus.COMPLETED ||
-            appointment.status == AppointmentStatus.REJECTED ||
-            appointment.status == AppointmentStatus.CANCELLED
+    val isFinalStatus = appointment.status == AppointmentStatus.COMPLETED ||
+        appointment.status == AppointmentStatus.CANCELLED ||
+        appointment.status == AppointmentStatus.NO_SHOW
+    val actionLoading = state.actionState == AppointmentActionState.Loading
+    val actionEnabled = !isFinalStatus && !actionLoading
 
     Column(
         modifier = modifier,
@@ -94,7 +101,7 @@ private fun AppointmentDetailContent(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = appointment.patientName.ifBlank { "Емделуші" },
+                    text = appointment.patientName.ifBlank { "Пациент" },
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -107,9 +114,17 @@ private fun AppointmentDetailContent(
             }
         }
 
+        if (actionLoading) {
+            CircularProgressIndicator()
+        }
+
+        state.error?.let { error ->
+            Text(text = error, color = MaterialTheme.colorScheme.error)
+        }
+
         Button(
             onClick = onAccept,
-            enabled = !isFinalStatus,
+            enabled = actionEnabled,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Қабылдау")
@@ -117,7 +132,7 @@ private fun AppointmentDetailContent(
 
         OutlinedButton(
             onClick = onReject,
-            enabled = !isFinalStatus,
+            enabled = actionEnabled,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Бас тарту")
@@ -125,10 +140,18 @@ private fun AppointmentDetailContent(
 
         OutlinedButton(
             onClick = onComplete,
-            enabled = !isFinalStatus,
+            enabled = actionEnabled,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Аяқтау")
+        }
+
+        OutlinedButton(
+            onClick = onNoShow,
+            enabled = actionEnabled,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Пациент келмеді")
         }
     }
 }
