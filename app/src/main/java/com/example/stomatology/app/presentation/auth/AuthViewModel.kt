@@ -281,7 +281,7 @@ class AuthViewModel @Inject constructor(
                     isLoading = false,
                     isSuccess = false,
                     doctorRequestSubmitted = true,
-                    message = "Заявка доктора отправлена. Дождитесь подтверждения администратора."
+                    message = "Дәрігер өтінімі жіберілді. Әкімші растауын күтіңіз."
                 )
             } else {
                 _state.value = _state.value.copy(

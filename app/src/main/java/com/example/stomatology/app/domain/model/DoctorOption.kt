@@ -1,7 +1,9 @@
 package com.example.stomatology.app.domain.model
 
 data class DoctorOption(
+    val docId: String = "",
     val uid: String = "",
+    val authUid: String = "",
     val displayName: String = "",
     val firstName: String = "",
     val lastName: String = "",

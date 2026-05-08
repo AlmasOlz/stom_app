@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,6 +56,7 @@ internal fun UsersTab(
     val selectedClinic = clinics.firstOrNull { clinic -> clinic.id == state.userForm.clinicId }
 
     Card(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -68,7 +70,12 @@ internal fun UsersTab(
                 label = { Text("UID") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                enabled = false
+                enabled = false,
+                supportingText = { Text("Тек оқу режимі") },
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = Color.Gray,
+                    disabledLabelColor = Color.Gray
+                )
             )
 
             OutlinedTextField(
@@ -210,7 +217,9 @@ private fun UserItemCard(
     onSelect: () -> Unit
 ) {
     Card(
-        modifier = Modifier.clickable(onClick = onSelect),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -231,7 +240,9 @@ private fun UserItemCard(
                 Text("Мамандығы: ${user.specialty}", color = Color.DarkGray)
             }
 
-            if (user.clinicId.isNotBlank()) {
+            if (user.clinicName.isNotBlank()) {
+                Text("Клиника: ${user.clinicName}", color = Color.DarkGray)
+            } else if (user.clinicId.isNotBlank()) {
                 Text("Клиника ID: ${user.clinicId}", color = Color.DarkGray)
             }
         }

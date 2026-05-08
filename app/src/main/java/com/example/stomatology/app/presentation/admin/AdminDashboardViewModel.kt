@@ -7,6 +7,7 @@ import com.example.stomatology.app.core.firebase.FirestoreFields
 import com.example.stomatology.app.core.firebase.RoleRequestStatus
 import com.example.stomatology.app.core.firebase.UserRoles
 import com.example.stomatology.app.domain.model.Clinic
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -40,7 +41,8 @@ data class AdminUserItem(
     val requestedRole: String,
     val requestStatus: String,
     val specialty: String,
-    val clinicId: String
+    val clinicId: String,
+    val clinicName: String
 )
 
 data class AdminUserForm(
@@ -71,7 +73,8 @@ data class AdminDashboardUiState(
 
 @HiltViewModel
 class AdminDashboardViewModel @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AdminDashboardUiState())
@@ -364,16 +367,45 @@ class AdminDashboardViewModel @Inject constructor(
             }
 
             try {
+                val now = System.currentTimeMillis()
+                val adminUid = auth.currentUser?.uid.orEmpty()
+                val selectedUser = _uiState.value.users.firstOrNull { it.uid == userId }
+                val selectedClinicName = _uiState.value.clinics
+                    .firstOrNull { it.id == form.clinicId.trim() }
+                    ?.name
+                    .orEmpty()
+
                 val data = hashMapOf(
                     FirestoreFields.ROLE to form.role,
                     FirestoreFields.REQUESTED_ROLE to form.role,
-                    FirestoreFields.REQUEST_STATUS to RoleRequestStatus.APPROVED,
                     FirestoreFields.DISPLAY_NAME to form.displayName.trim(),
                     FirestoreFields.PHONE to form.phone.trim(),
                     FirestoreFields.SPECIALTY to form.specialty.trim(),
                     FirestoreFields.CLINIC_ID to form.clinicId.trim(),
-                    FirestoreFields.UPDATED_AT to System.currentTimeMillis()
+                    FirestoreFields.CLINIC_NAME to selectedClinicName,
+                    FirestoreFields.UPDATED_AT to now
                 )
+
+                if (form.role == UserRoles.DOCTOR) {
+                    data[FirestoreFields.REQUEST_STATUS] = RoleRequestStatus.APPROVED
+                    data[FirestoreFields.APPROVED_AT] = now
+                    data[FirestoreFields.APPROVED_BY] = adminUid
+                    data[FirestoreFields.IS_ACTIVE] = true
+                } else if (selectedUser?.requestedRole == UserRoles.DOCTOR &&
+                    selectedUser.requestStatus == RoleRequestStatus.PENDING
+                ) {
+                    data[FirestoreFields.ROLE] = UserRoles.PATIENT
+                    data[FirestoreFields.REQUEST_STATUS] = RoleRequestStatus.REJECTED
+                    data[FirestoreFields.REJECTED_AT] = now
+                    data[FirestoreFields.REJECTED_BY] = adminUid
+                    data[FirestoreFields.IS_ACTIVE] = false
+                    data[FirestoreFields.SPECIALTY] = ""
+                    data[FirestoreFields.CLINIC_ID] = ""
+                    data[FirestoreFields.CLINIC_NAME] = ""
+                } else {
+                    data[FirestoreFields.REQUEST_STATUS] = RoleRequestStatus.NONE
+                    data[FirestoreFields.IS_ACTIVE] = true
+                }
 
                 firestore.collection(FirestoreCollections.USERS)
                     .document(userId)
@@ -487,6 +519,7 @@ class AdminDashboardViewModel @Inject constructor(
             rating = getDouble(FirestoreFields.RATING) ?: 0.0,
             reviews = getLong(FirestoreFields.REVIEWS)?.toInt() ?: 0,
             address = getString(FirestoreFields.ADDRESS).orEmpty(),
+            phone = getString(FirestoreFields.PHONE).orEmpty(),
             services = services,
             imageUrl = getString(FirestoreFields.IMAGE_URL).orEmpty(),
             priceFrom = priceFrom,
@@ -514,7 +547,8 @@ class AdminDashboardViewModel @Inject constructor(
                 ?: UserRoles.PATIENT,
             requestStatus = getString(FirestoreFields.REQUEST_STATUS) ?: RoleRequestStatus.NONE,
             specialty = getString(FirestoreFields.SPECIALTY).orEmpty(),
-            clinicId = getString(FirestoreFields.CLINIC_ID).orEmpty()
+            clinicId = getString(FirestoreFields.CLINIC_ID).orEmpty(),
+            clinicName = getString(FirestoreFields.CLINIC_NAME).orEmpty()
         )
     }
 

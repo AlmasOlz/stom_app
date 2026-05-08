@@ -42,11 +42,12 @@ fun LessonScreen(
     onBack: () -> Unit
 ) {
     val scrollState = rememberScrollState()
+    val normalizedTopic = topic.lowercase().replace(" ", "")
 
-    val (displayTitle, videoId) = when (topic.lowercase()) {
+    val (displayTitle, videoId) = when (normalizedTopic) {
         "brushing" -> "Тісті тазалау сабағы" to "R0M0Ry3MhME"
         "flossing" -> "Тіс жібін қолдану сабағы" to "3X9pTOnv_A8"
-        "mouth wash" -> "Шайғыш қолдану сабағы" to "R0M0Ry3MhME"
+        "mouthwash" -> "Шайғыш қолдану сабағы" to "R0M0Ry3MhME"
         else -> "Оқыту сабағы" to "R0M0Ry3MhME"
     }
 
@@ -87,7 +88,7 @@ fun LessonScreen(
             Text("Бастаймыз", fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                "Төмендегі бейне-нұсқаулықты қарап, ауыз қуысына дұрыс күтім жасаңыз.",
+                "Төмендегі бейне-нұсқаулықты қарап, ауыз қуысына дұрыс күтім жасауды үйреніңіз.",
                 color = Color.DarkGray
             )
 

@@ -154,11 +154,11 @@ class DoctorAppointmentViewModel @Inject constructor(
                         error = e.message ?: "Тексеру қатесі"
                     )
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.update {
                     it.copy(
                         actionState = AppointmentActionState.GeneralError,
-                        error = e.message ?: "Операция орындалмады"
+                        error = "Статусты жаңарту мүмкін болмады"
                     )
                 }
             }

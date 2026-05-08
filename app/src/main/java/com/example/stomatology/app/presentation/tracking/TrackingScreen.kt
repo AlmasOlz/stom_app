@@ -23,34 +23,41 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.example.stomatology.app.R
 import com.example.stomatology.app.presentation.profile.UserProfileViewModel
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 import java.text.DateFormatSymbols
 import java.util.Calendar
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 data class VideoTopic(
     val title: String,
@@ -77,6 +84,7 @@ fun TrackingScreen(
     val userName = profileState.user.firstName
         .ifBlank { profileState.user.displayName }
         .ifBlank { fallbackUserName }
+    val userPhotoUrl = profileState.user.photoUrl.trim()
 
     if (profileState.isLoading) {
         Box(
@@ -92,6 +100,7 @@ fun TrackingScreen(
 
     TrackingContent(
         userName = userName,
+        userPhotoUrl = userPhotoUrl,
         onNavigateToReminders = onNavigateToReminders,
         onNavigateToInstructions = onNavigateToInstructions,
         onNavigateToLesson = onNavigateToLesson
@@ -101,6 +110,7 @@ fun TrackingScreen(
 @Composable
 private fun TrackingContent(
     userName: String,
+    userPhotoUrl: String,
     onNavigateToReminders: () -> Unit,
     onNavigateToInstructions: () -> Unit,
     onNavigateToLesson: (String) -> Unit
@@ -127,14 +137,21 @@ private fun TrackingContent(
             icon = Icons.Default.PlayArrow
         )
     )
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
-            .verticalScroll(scrollState)
-            .padding(16.dp)
-    ) {
+    androidx.compose.material3.Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = Color(0xFFF8F9FA)
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .background(Color(0xFFF8F9FA))
+                .verticalScroll(scrollState)
+                .padding(16.dp)
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -151,8 +168,40 @@ private fun TrackingContent(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color.LightGray)
-            )
+                    .background(Color(0xFFE1F5FE)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (userPhotoUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = userPhotoUrl,
+                        contentDescription = stringResource(R.string.profile_photo),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    val fallbackLetter = userName.trim()
+                        .firstOrNull()
+                        ?.uppercaseChar()
+                        ?.toString()
+                        .orEmpty()
+
+                    if (fallbackLetter.isNotBlank()) {
+                        Text(
+                            text = fallbackLetter,
+                            color = PrimaryBlue,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = PrimaryBlue,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -261,17 +310,27 @@ private fun TrackingContent(
 
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(end = 8.dp)
         ) {
             items(videoTopics) { topic ->
                 VideoCard(
                     topic = topic,
-                    onClick = { onNavigateToLesson(topic.route) }
+                    onClick = {
+                        if (topic.route.isBlank()) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Бұл сабақ әзірге қолжетімсіз")
+                            }
+                        } else {
+                            onNavigateToLesson(topic.route)
+                        }
+                    }
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+    }
     }
 }
 
@@ -380,7 +439,8 @@ fun VideoCard(
                     text = topic.title,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = Color.Black,
+                    textAlign = TextAlign.Center
                 )
             }
         }

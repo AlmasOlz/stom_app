@@ -20,16 +20,20 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +56,8 @@ fun RemindersScreen(
     onBack: () -> Unit
 ) {
     val scrollState = rememberScrollState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     var brushMorning by rememberSaveable { mutableStateOf(false) }
     var brushEvening by rememberSaveable { mutableStateOf(true) }
@@ -61,6 +68,7 @@ fun RemindersScreen(
     var activeReminderKey by rememberSaveable { mutableStateOf("") }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             Box(
                 modifier = Modifier
@@ -137,7 +145,7 @@ fun RemindersScreen(
 
             ReminderSection(
                 title = "Тіс жібі",
-                note = "Күніне 1 рет, тамақтан кейін орнату ұсынылады.",
+                note = "Күніне 1 рет, тамақтан кейін қолдану ұсынылады.",
                 items = listOf(
                     ReminderToggle("Еске салу", flossing) {
                         flossing = it
@@ -161,10 +169,14 @@ fun RemindersScreen(
             }
 
             Button(
-                onClick = onBack,
+                onClick = {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Еске салғыштар сақталды")
+                    }
+                },
                 modifier = Modifier
                     .align(Alignment.End)
-                    .width(120.dp)
+                    .width(140.dp)
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
             ) {
@@ -214,9 +226,9 @@ fun ReminderSection(
                 note?.let {
                     Text(
                         text = it,
-                        fontSize = 10.sp,
-                        color = Color(0xFF4A148C),
-                        lineHeight = 12.sp
+                        fontSize = 11.sp,
+                        color = Color(0xFF546E7A),
+                        lineHeight = 14.sp
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }

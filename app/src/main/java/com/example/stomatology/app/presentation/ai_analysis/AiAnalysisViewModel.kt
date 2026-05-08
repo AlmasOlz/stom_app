@@ -551,6 +551,7 @@ private fun DocumentSnapshot.toClinicForAi(): Clinic {
         rating = getDouble(FirestoreFields.RATING) ?: 0.0,
         reviews = getLong(FirestoreFields.REVIEWS)?.toInt() ?: 0,
         address = getString(FirestoreFields.ADDRESS).orEmpty(),
+        phone = getString(FirestoreFields.PHONE).orEmpty(),
         services = services,
         imageUrl = getString(FirestoreFields.IMAGE_URL).orEmpty(),
         priceFrom = priceFrom,

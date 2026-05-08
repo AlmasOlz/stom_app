@@ -1,5 +1,6 @@
 package com.example.stomatology.app.presentation.doctor_dashboard
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stomatology.app.core.firebase.FirestoreCollections
@@ -9,9 +10,11 @@ import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.example.stomatology.app.domain.repository.AppointmentRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -41,6 +44,12 @@ class DoctorDashboardViewModel @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : ViewModel() {
 
+    private companion object {
+        const val TAG = "DoctorDashboardVM"
+        const val ERROR_LOAD_APPOINTMENTS = "Жазылуларды жүктеу мүмкін болмады"
+        const val ERROR_RETRY = "Қате пайда болды. Қайталап көріңіз"
+    }
+
     private val _uiState = MutableStateFlow(DoctorDashboardUiState())
     val uiState: StateFlow<DoctorDashboardUiState> = _uiState
 
@@ -54,13 +63,12 @@ class DoctorDashboardViewModel @Inject constructor(
 
     private fun loadDoctorProfile() {
         val currentDoctorId = doctorId
+        val userDocPath = "${FirestoreCollections.USERS}/$currentDoctorId"
+        Log.d(TAG, "load_profile authUid=$currentDoctorId userDocPath=$userDocPath")
 
         if (currentDoctorId.isBlank()) {
             _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    error = "Дәрігер аккаунты табылмады"
-                )
+                it.copy(isLoading = false, error = ERROR_RETRY)
             }
             return
         }
@@ -72,10 +80,26 @@ class DoctorDashboardViewModel @Inject constructor(
                     .get()
                     .await()
 
+                if (!snapshot.exists()) {
+                    Log.w(TAG, "users_doc_missing path=$userDocPath")
+                    val fallbackSnapshot = firestore.collection(FirestoreCollections.USERS)
+                        .whereEqualTo(FirestoreFields.AUTH_UID, currentDoctorId)
+                        .limit(1)
+                        .get()
+                        .await()
+                    val fallbackDocId = fallbackSnapshot.documents.firstOrNull()?.id
+                    if (fallbackDocId != null) {
+                        Log.w(
+                            TAG,
+                            "doctor_profile_doc_id_mismatch authUid=$currentDoctorId foundDocId=$fallbackDocId expectedDocId=$currentDoctorId"
+                        )
+                    }
+                }
+
                 val firstName = snapshot.getString(FirestoreFields.FIRST_NAME).orEmpty()
                 val lastName = snapshot.getString(FirestoreFields.LAST_NAME).orEmpty()
                 val displayName = snapshot.getString(FirestoreFields.DISPLAY_NAME)
-                    ?.takeIf { it.isNotBlank() }
+                    ?.takeIf { value -> value.isNotBlank() }
                     ?: "$firstName $lastName".trim()
 
                 _uiState.update {
@@ -84,28 +108,56 @@ class DoctorDashboardViewModel @Inject constructor(
                         doctorSpecialty = snapshot.getString(FirestoreFields.SPECIALTY).orEmpty()
                     )
                 }
-            } catch (_: Exception) {
-                // Keep dashboard usable even if profile fetch fails.
+            } catch (e: Exception) {
+                Log.e(TAG, "load_profile_failed authUid=$currentDoctorId path=$userDocPath", e)
+                _uiState.update {
+                    it.copy(doctorName = it.doctorName.ifBlank { "Дәрігер" })
+                }
             }
         }
     }
 
     private fun observeAppointments() {
         val currentDoctorId = doctorId
+        val userDocPath = "${FirestoreCollections.USERS}/$currentDoctorId"
+        Log.d(
+            TAG,
+            "observe_appointments authUid=${auth.currentUser?.uid.orEmpty()} userDocPath=$userDocPath queryDoctorId=$currentDoctorId"
+        )
 
         if (currentDoctorId.isBlank()) {
             _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    error = "Дәрігер аккаунты табылмады"
-                )
+                it.copy(isLoading = false, error = ERROR_LOAD_APPOINTMENTS)
             }
             return
         }
 
         viewModelScope.launch {
             appointmentRepository.getAppointmentsForDoctor(currentDoctorId)
+                .catch { throwable ->
+                    logDoctorDashboardError(
+                        throwable = throwable,
+                        currentAuthUid = auth.currentUser?.uid.orEmpty(),
+                        queryDoctorId = currentDoctorId,
+                        userDocPath = userDocPath
+                    )
+                    _uiState.update { state ->
+                        state.copy(isLoading = false, error = mapLoadError(throwable))
+                    }
+                }
                 .collectLatest { appointments ->
+                    if (appointments.isEmpty()) {
+                        Log.i(
+                            TAG,
+                            "appointments_empty authUid=${auth.currentUser?.uid.orEmpty()} queryDoctorId=$currentDoctorId"
+                        )
+                    }
+
+                    val mismatchCount = appointments.count { it.doctorId != currentDoctorId }
+                    if (mismatchCount > 0) {
+                        Log.w(TAG, "doctorId_mismatch_count=$mismatchCount queryDoctorId=$currentDoctorId")
+                    }
+
                     val today = LocalDate.now()
                     val nowTimeMinutes = LocalTime.now().hour * 60 + LocalTime.now().minute
 
@@ -155,6 +207,57 @@ class DoctorDashboardViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    private fun mapLoadError(throwable: Throwable): String {
+        val firestoreError = throwable as? FirebaseFirestoreException
+        return when (firestoreError?.code) {
+            FirebaseFirestoreException.Code.PERMISSION_DENIED -> "Рұқсат жоқ. Дәрігер профилін тексеріңіз"
+            FirebaseFirestoreException.Code.FAILED_PRECONDITION -> "Индекс қажет. Firestore indexes deploy жасаңыз"
+            else -> ERROR_LOAD_APPOINTMENTS
+        }
+    }
+
+    private fun logDoctorDashboardError(
+        throwable: Throwable,
+        currentAuthUid: String,
+        queryDoctorId: String,
+        userDocPath: String
+    ) {
+        val firestoreError = throwable as? FirebaseFirestoreException
+        if (firestoreError != null) {
+            when (firestoreError.code) {
+                FirebaseFirestoreException.Code.PERMISSION_DENIED -> {
+                    Log.e(
+                        TAG,
+                        "appointments_load_failed reason=permission_denied authUid=$currentAuthUid userDocPath=$userDocPath queryDoctorId=$queryDoctorId message=${firestoreError.message}",
+                        firestoreError
+                    )
+                }
+
+                FirebaseFirestoreException.Code.FAILED_PRECONDITION -> {
+                    Log.e(
+                        TAG,
+                        "appointments_load_failed reason=missing_index_or_precondition authUid=$currentAuthUid userDocPath=$userDocPath queryDoctorId=$queryDoctorId message=${firestoreError.message}",
+                        firestoreError
+                    )
+                }
+
+                else -> {
+                    Log.e(
+                        TAG,
+                        "appointments_load_failed reason=firestore_${firestoreError.code.name.lowercase()} authUid=$currentAuthUid userDocPath=$userDocPath queryDoctorId=$queryDoctorId message=${firestoreError.message}",
+                        firestoreError
+                    )
+                }
+            }
+        } else {
+            Log.e(
+                TAG,
+                "appointments_load_failed reason=unknown authUid=$currentAuthUid userDocPath=$userDocPath queryDoctorId=$queryDoctorId message=${throwable.message}",
+                throwable
+            )
         }
     }
 

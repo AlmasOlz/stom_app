@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -81,6 +83,8 @@ fun RegistrationScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
+                .navigationBarsPadding()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.Start
@@ -143,20 +147,8 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            AuthTextField(
-                label = "Аты",
-                value = state.firstName,
-                placeholder = "Атыңыз",
-                onValueChange = viewModel::onFirstNameChange
-            )
-
-            AuthTextField(
-                label = "Тегі",
-                value = state.lastName,
-                placeholder = "Тегіңіз",
-                onValueChange = viewModel::onLastNameChange
-            )
-
+            AuthTextField("Аты", state.firstName, "Атыңыз", onValueChange = viewModel::onFirstNameChange)
+            AuthTextField("Тегі", state.lastName, "Тегіңіз", onValueChange = viewModel::onLastNameChange)
             AuthTextField(
                 label = "Телефон",
                 value = state.phone,
@@ -164,7 +156,6 @@ fun RegistrationScreen(
                 keyboardType = KeyboardType.Phone,
                 onValueChange = viewModel::onPhoneChange
             )
-
             AuthTextField(
                 label = "Электрондық пошта",
                 value = state.email,
@@ -248,7 +239,7 @@ fun RegistrationScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Аккаунт ашу арқылы сервис шарттары мен құпиялылық саясатына келісесіз",
+                text = "Аккаунт ашу арқылы сервис шарттары мен құпиялық саясатына келісесіз",
                 fontSize = 12.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
@@ -290,6 +281,7 @@ fun RegistrationScreen(
             } else {
                 Button(
                     onClick = { viewModel.signUp() },
+                    enabled = !state.doctorRequestSubmitted,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -297,7 +289,13 @@ fun RegistrationScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                 ) {
                     Text(
-                        if (state.requestedRole == UserRoles.DOCTOR) "Өтінім жіберу" else "Аккаунт ашу",
+                        if (state.requestedRole == UserRoles.DOCTOR && state.doctorRequestSubmitted) {
+                            "Өтінім жіберілді"
+                        } else if (state.requestedRole == UserRoles.DOCTOR) {
+                            "Өтінім жіберу"
+                        } else {
+                            "Аккаунт ашу"
+                        },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -333,7 +331,7 @@ fun RegistrationScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(96.dp))
         }
     }
 }

@@ -30,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,7 +43,7 @@ import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 data class NotificationItem(
     val title: String,
-    val description: String,
+    val message: String,
     val time: String,
     val type: NotificationType
 )
@@ -52,26 +53,28 @@ enum class NotificationType { MISSED, SUCCESS, INFO }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationHistoryScreen(onBack: () -> Unit) {
-    val notifications = listOf(
-        NotificationItem(
-            title = "Өткізіп алдыңыз",
-            description = "Таңертеңгі тіс тазалауды өткізіп алдыңыз. Гигиенаны ұмытпаңыз.",
-            time = "08:30",
-            type = NotificationType.MISSED
-        ),
-        NotificationItem(
-            title = "Өткізіп алдыңыз",
-            description = "Тіс протезін тазалауды өткізіп алдыңыз. Күніне екі рет жасау ұсынылады.",
-            time = "08:00",
-            type = NotificationType.MISSED
-        ),
-        NotificationItem(
-            title = "Құттықтаймыз!",
-            description = "Тамаша! Сіз 7 күн қатарынан ауыз шайғышты қолданып жүрсіз.",
-            time = "09:00",
-            type = NotificationType.SUCCESS
+    val notifications = remember {
+        listOf(
+            NotificationItem(
+                title = "Еске салғыш өткізіліп алынды",
+                message = "Таңертеңгі тіс тазалау орындалмады. Келесі еске салғышта жалғастырыңыз.",
+                time = "08:30",
+                type = NotificationType.MISSED
+            ),
+            NotificationItem(
+                title = "Құттықтаймыз!",
+                message = "Сіз 7 күн қатарынан күтім жоспарын сақтадыңыз.",
+                time = "09:00",
+                type = NotificationType.SUCCESS
+            ),
+            NotificationItem(
+                title = "Пайдалы кеңес",
+                message = "Ем алдында аллергия және қабылдайтын дәрілер туралы дәрігерге айтыңыз.",
+                time = "10:15",
+                type = NotificationType.INFO
+            )
         )
-    )
+    }
 
     Scaffold(
         topBar = {
@@ -99,8 +102,27 @@ fun NotificationHistoryScreen(onBack: () -> Unit) {
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
             }
-            items(notifications) { notification ->
-                NotificationCard(notification)
+
+            if (notifications.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Text(
+                            text = "Хабарламалар жоқ",
+                            modifier = Modifier.padding(20.dp),
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            } else {
+                items(notifications) { notification ->
+                    NotificationCard(notification)
+                }
             }
         }
     }
@@ -108,26 +130,10 @@ fun NotificationHistoryScreen(onBack: () -> Unit) {
 
 @Composable
 fun NotificationCard(item: NotificationItem) {
-    val icon: ImageVector
-    val iconColor: Color
-    val backgroundColor: Color
-
-    when (item.type) {
-        NotificationType.MISSED -> {
-            icon = Icons.Default.Warning
-            iconColor = Color(0xFFE53935)
-            backgroundColor = Color(0xFFFFEBEE)
-        }
-        NotificationType.SUCCESS -> {
-            icon = Icons.Default.CheckCircle
-            iconColor = Color(0xFF43A047)
-            backgroundColor = Color(0xFFE8F5E9)
-        }
-        NotificationType.INFO -> {
-            icon = Icons.Default.Info
-            iconColor = PrimaryBlue
-            backgroundColor = Color(0xFFE3F2FD)
-        }
+    val (icon, iconColor, backgroundColor) = when (item.type) {
+        NotificationType.MISSED -> Triple(Icons.Default.Warning, Color(0xFFE53935), Color(0xFFFFEBEE))
+        NotificationType.SUCCESS -> Triple(Icons.Default.CheckCircle, Color(0xFF43A047), Color(0xFFE8F5E9))
+        NotificationType.INFO -> Triple(Icons.Default.Info, PrimaryBlue, Color(0xFFE3F2FD))
     }
 
     Card(
@@ -164,7 +170,7 @@ fun NotificationCard(item: NotificationItem) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = item.description,
+                    text = item.message,
                     fontSize = 14.sp,
                     color = Color.DarkGray,
                     lineHeight = 18.sp

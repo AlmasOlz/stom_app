@@ -58,9 +58,23 @@ class AuthRepositoryImpl @Inject constructor(
             } else {
                 RoleRequestStatus.NONE
             }
+            val normalizedClinicId = clinicId.trim()
+            val clinicName = if (normalizedRequestedRole == UserRoles.DOCTOR && normalizedClinicId.isNotBlank()) {
+                runCatching {
+                    firestore.collection(FirestoreCollections.CLINICS)
+                        .document(normalizedClinicId)
+                        .get()
+                        .await()
+                        .getString(FirestoreFields.NAME)
+                        .orEmpty()
+                }.getOrDefault("")
+            } else {
+                ""
+            }
 
             val userData = hashMapOf(
                 FirestoreFields.UID to uid,
+                FirestoreFields.AUTH_UID to uid,
                 FirestoreFields.EMAIL to email,
                 FirestoreFields.ROLE to UserRoles.PATIENT,
                 FirestoreFields.REQUESTED_ROLE to normalizedRequestedRole,
@@ -70,7 +84,9 @@ class AuthRepositoryImpl @Inject constructor(
                 FirestoreFields.DISPLAY_NAME to displayName,
                 FirestoreFields.PHONE to phone,
                 FirestoreFields.SPECIALTY to specialty.trim(),
-                FirestoreFields.CLINIC_ID to clinicId.trim(),
+                FirestoreFields.CLINIC_ID to normalizedClinicId,
+                FirestoreFields.CLINIC_NAME to clinicName,
+                FirestoreFields.IS_ACTIVE to (normalizedRequestedRole != UserRoles.DOCTOR),
                 FirestoreFields.CREATED_AT to now,
                 FirestoreFields.UPDATED_AT to now
             )

@@ -14,6 +14,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -305,13 +307,19 @@ fun AppNavigation() {
 
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
-                    onEditProfile = { navController.navigate("profile_edit") },
+                    onEditProfile = {
+                        runCatching { navController.navigate("profile_edit") { launchSingleTop = true } }
+                    },
                     onNotifications = {
-                        navController.navigate(BottomNavItem.Notifications.route) {
-                            launchSingleTop = true
+                        runCatching {
+                            navController.navigate(BottomNavItem.Notifications.route) {
+                                launchSingleTop = true
+                            }
                         }
                     },
-                    onOpenSettings = { navController.navigate("profile_settings") }
+                    onOpenSettings = {
+                        runCatching { navController.navigate("profile_settings") { launchSingleTop = true } }
+                    }
                 )
             }
 
@@ -374,9 +382,19 @@ fun AppNavigation() {
 
             composable(DoctorRoutes.Profile) {
                 ProfileScreen(
-                    onEditProfile = { navController.navigate("profile_edit") },
-                    onNotifications = {},
-                    onOpenSettings = { navController.navigate("profile_settings") }
+                    onEditProfile = {
+                        runCatching { navController.navigate("profile_edit") { launchSingleTop = true } }
+                    },
+                    onNotifications = {
+                        runCatching {
+                            navController.navigate(BottomNavItem.Notifications.route) {
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onOpenSettings = {
+                        runCatching { navController.navigate("profile_settings") { launchSingleTop = true } }
+                    }
                 )
             }
 
@@ -386,9 +404,19 @@ fun AppNavigation() {
 
             composable(AdminRoutes.Profile) {
                 ProfileScreen(
-                    onEditProfile = { navController.navigate("profile_edit") },
-                    onNotifications = {},
-                    onOpenSettings = { navController.navigate("profile_settings") }
+                    onEditProfile = {
+                        runCatching { navController.navigate("profile_edit") { launchSingleTop = true } }
+                    },
+                    onNotifications = {
+                        runCatching {
+                            navController.navigate(BottomNavItem.Notifications.route) {
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onOpenSettings = {
+                        runCatching { navController.navigate("profile_settings") { launchSingleTop = true } }
+                    }
                 )
             }
         }
@@ -418,6 +446,11 @@ fun BottomNavigationBar(
                     )
                 },
                 selected = currentRoute == item.route,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color.White,
+                    unselectedIconColor = Color.White.copy(alpha = 0.75f),
+                    indicatorColor = Color.White.copy(alpha = 0.18f)
+                ),
                 onClick = {
                     if (currentRoute != item.route) {
                         navController.navigate(item.route) {
@@ -452,6 +485,11 @@ fun DoctorBottomNavigationBar(
                     )
                 },
                 selected = currentRoute == item.route,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color.White,
+                    unselectedIconColor = Color.White.copy(alpha = 0.75f),
+                    indicatorColor = Color.White.copy(alpha = 0.18f)
+                ),
                 onClick = {
                     if (currentRoute != item.route) {
                         navController.navigate(item.route) {
@@ -485,6 +523,11 @@ fun AdminBottomNavigationBar(
                     )
                 },
                 selected = currentRoute == item.route,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color.White,
+                    unselectedIconColor = Color.White.copy(alpha = 0.75f),
+                    indicatorColor = Color.White.copy(alpha = 0.18f)
+                ),
                 onClick = {
                     if (currentRoute != item.route) {
                         navController.navigate(item.route) {
