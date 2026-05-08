@@ -69,10 +69,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-fun convertMillisToDate(millis: Long): String {
-    val formatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-    return formatter.format(Date(millis))
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -371,9 +367,9 @@ private fun BookingScreenContent(
                     .fillMaxWidth()
                     .height(56.dp),
                 enabled = hasClinicId &&
-                    state.selectedDate.isNotEmpty() &&
-                    state.selectedTime.isNotEmpty() &&
-                    state.doctorName.isNotEmpty(),
+                        state.selectedDate.isNotEmpty() &&
+                        state.selectedTime.isNotEmpty() &&
+                        state.doctorName.isNotEmpty(),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
             ) {
@@ -574,7 +570,7 @@ private fun sanitizeBookingErrorForUi(rawMessage: String?): String? {
         "clinic("
     )
     val looksTechnical = technicalMarkers.any { marker -> lowered.contains(marker) } ||
-        message.contains('\n')
+            message.contains('\n')
 
     return if (looksTechnical) "Сұранысты орындау мүмкін болмады. Қайта көріңіз" else message
 }
