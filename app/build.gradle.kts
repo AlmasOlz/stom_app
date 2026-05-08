@@ -106,6 +106,7 @@ dependencies {
 
     implementation(libs.maps.compose)
     implementation(libs.play.services.maps)
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(libs.coil.compose)
 
     implementation("androidx.room:room-runtime:2.6.1")

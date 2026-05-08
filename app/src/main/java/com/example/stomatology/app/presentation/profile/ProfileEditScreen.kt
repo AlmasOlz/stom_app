@@ -399,5 +399,5 @@ private fun profileEditInitials(displayName: String): String {
     return parts
         .take(2)
         .joinToString("") { value -> value.first().uppercaseChar().toString() }
-        .ifBlank { "P" }
+        .ifBlank { "Қ" }
 }

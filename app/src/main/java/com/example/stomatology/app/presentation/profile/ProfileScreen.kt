@@ -48,6 +48,9 @@ import com.example.stomatology.app.R
 import com.example.stomatology.app.core.firebase.UserRoles
 import com.example.stomatology.app.domain.model.UserProfile
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun ProfileScreen(
@@ -76,6 +79,8 @@ fun ProfileScreen(
         .ifBlank { stringResource(R.string.profile_name_fallback) }
     val email = user.email.ifBlank { stringResource(R.string.profile_email_missing) }
     val phone = user.phone.ifBlank { stringResource(R.string.profile_phone_missing) }
+    val roleLabel = profileRoleLabel(user.role)
+    val registeredAt = formatProfileDate(user.createdAt)
 
     Column(
         modifier = Modifier
@@ -142,6 +147,21 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            Surface(
+                color = PrimaryBlue.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(999.dp)
+            ) {
+                Text(
+                    text = roleLabel,
+                    color = PrimaryBlue,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = email,
                 fontSize = 14.sp,
@@ -169,7 +189,8 @@ fun ProfileScreen(
 
         ProfileInfoCard(
             email = email,
-            phone = phone
+            phone = phone,
+            registeredAt = registeredAt
         )
 
         if (user.role == UserRoles.DOCTOR) {
@@ -292,7 +313,8 @@ private fun ProfileAvatar(
 @Composable
 private fun ProfileInfoCard(
     email: String,
-    phone: String
+    phone: String,
+    registeredAt: String
 ) {
     Card(
         modifier = Modifier
@@ -314,6 +336,10 @@ private fun ProfileInfoCard(
 
             ProfileInfoRow(label = stringResource(R.string.profile_email), value = email)
             ProfileInfoRow(label = stringResource(R.string.profile_phone), value = phone)
+            ProfileInfoRow(
+                label = stringResource(R.string.profile_registered_at),
+                value = registeredAt
+            )
         }
     }
 }
@@ -436,5 +462,21 @@ private fun profileInitials(displayName: String): String {
     return parts
         .take(2)
         .joinToString("") { value -> value.first().uppercaseChar().toString() }
-        .ifBlank { "П" }
+        .ifBlank { "Қ" }
+}
+
+private fun formatProfileDate(timestamp: Long): String {
+    if (timestamp <= 0L) return "—"
+    return runCatching {
+        val formatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+        formatter.format(Date(timestamp))
+    }.getOrDefault("—")
+}
+
+private fun profileRoleLabel(role: String): String {
+    return when (role) {
+        UserRoles.ADMIN -> "Әкімші"
+        UserRoles.DOCTOR -> "Дәрігер"
+        else -> "Қолданушы"
+    }
 }
