@@ -2,9 +2,12 @@ package com.example.stomatology.app.presentation.home
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.location.LocationManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
@@ -66,6 +69,11 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 
 @Composable
 fun HomeScreen(
@@ -86,17 +94,24 @@ fun HomeScreen(
         .ifBlank { "Пайдаланушы" }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            context.fetchLastKnownLocation()?.let { latLng ->
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val hasPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (hasPermission) {
+            context.fetchCurrentLocation { latLng ->
                 homeViewModel.onLocationUpdated(latLng.latitude, latLng.longitude)
             }
         }
     }
 
     LaunchedEffect(Unit) {
-        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        locationPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
     }
 
     if (profileState.isLoading || homeState.isLoading) {
@@ -185,7 +200,10 @@ private fun HomeContent(
 
         NearbyClinicsSection(
             clinics = uiState.nearbyClinics,
-            onOpenClinic = onOpenClinic
+            onOpenClinic = onOpenClinic,
+            userLocation = uiState.userLat?.let { lat ->
+                uiState.userLon?.let { lon -> LatLng(lat, lon) }
+            }
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -300,7 +318,8 @@ private fun QuickRebookHeroCard(
 @Composable
 private fun NearbyClinicsSection(
     clinics: List<Clinic>,
-    onOpenClinic: (String, String) -> Unit
+    onOpenClinic: (String, String) -> Unit,
+    userLocation: LatLng?
 ) {
     Text(
         text = "Жақын маңдағы клиникалар",
@@ -321,10 +340,12 @@ private fun NearbyClinicsSection(
     }
 
     val mapClinics = clinics.filter { it.latitude != 0.0 || it.longitude != 0.0 }
-    if (mapClinics.isNotEmpty()) {
-        val first = mapClinics.first()
+    val context = LocalContext.current
+    val canRenderMap = remember(context) { canRenderEmbeddedMap(context) }
+    if (mapClinics.isNotEmpty() && canRenderMap) {
+        val first = userLocation ?: LatLng(mapClinics.first().latitude, mapClinics.first().longitude)
         val cameraState = rememberCameraPositionState {
-            position = CameraPosition.fromLatLngZoom(LatLng(first.latitude, first.longitude), 12f)
+            position = CameraPosition.fromLatLngZoom(first, if (userLocation != null) 13f else 12f)
         }
         Card(
             modifier = Modifier
@@ -344,7 +365,30 @@ private fun NearbyClinicsSection(
                         snippet = clinic.address
                     )
                 }
+                userLocation?.let {
+                    Marker(
+                        state = MarkerState(position = it),
+                        title = "Сіздің орныңыз",
+                        snippet = "Ағымдағы мекенжай"
+                    )
+                }
             }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+    } else if (mapClinics.isNotEmpty()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Text(
+                text = "Карта уақытша қолжетімсіз. Тізімнен клиниканы таңдап, картада ашуға болады.",
+                color = Color.Gray,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(12.dp)
+            )
         }
         Spacer(modifier = Modifier.height(10.dp))
     }
@@ -372,7 +416,45 @@ private fun NearbyClinicsSection(
 }
 
 @SuppressLint("MissingPermission")
-private fun android.content.Context.fetchLastKnownLocation(): LatLng? {
+private fun Context.fetchCurrentLocation(onSuccess: (LatLng) -> Unit) {
+    val hasFine = ContextCompat.checkSelfPermission(
+        this,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+    val hasCoarse = ContextCompat.checkSelfPermission(
+        this,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+    if (!hasFine && !hasCoarse) return
+
+    val client = LocationServices.getFusedLocationProviderClient(this)
+    client.lastLocation
+        .addOnSuccessListener { location ->
+            if (location != null) {
+                onSuccess(LatLng(location.latitude, location.longitude))
+            } else {
+                val cts = CancellationTokenSource()
+                client.getCurrentLocation(
+                    if (hasFine) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                    cts.token
+                ).addOnSuccessListener { current ->
+                    if (current != null) {
+                        onSuccess(LatLng(current.latitude, current.longitude))
+                    } else {
+                        fetchLastKnownLocationFallback()?.let(onSuccess)
+                    }
+                }.addOnFailureListener {
+                    fetchLastKnownLocationFallback()?.let(onSuccess)
+                }
+            }
+        }
+        .addOnFailureListener {
+            fetchLastKnownLocationFallback()?.let(onSuccess)
+        }
+}
+
+@SuppressLint("MissingPermission")
+private fun Context.fetchLastKnownLocationFallback(): LatLng? {
     val locationManager = getSystemService(LocationManager::class.java) ?: return null
     val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
     val location = providers
@@ -380,6 +462,22 @@ private fun android.content.Context.fetchLastKnownLocation(): LatLng? {
         .maxByOrNull { it.time }
         ?: return null
     return LatLng(location.latitude, location.longitude)
+}
+
+private fun canRenderEmbeddedMap(context: android.content.Context): Boolean {
+    val hasGooglePlayServices = GoogleApiAvailability.getInstance()
+        .isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS
+    if (!hasGooglePlayServices) return false
+
+    val apiKey = runCatching {
+        val appInfo = context.packageManager.getApplicationInfo(
+            context.packageName,
+            android.content.pm.PackageManager.GET_META_DATA
+        )
+        appInfo.metaData?.getString("com.google.android.geo.API_KEY").orEmpty()
+    }.getOrDefault("")
+
+    return apiKey.isNotBlank()
 }
 
 @Composable

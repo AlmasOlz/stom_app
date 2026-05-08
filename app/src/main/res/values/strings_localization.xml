@@ -27,6 +27,8 @@
     <string name="profile_years">жыл</string>
     <string name="profile_about_doctor">Дәрігер туралы</string>
     <string name="profile_not_specified">Көрсетілмеген</string>
+    <string name="profile_registered_at">Тіркелген күні</string>
+    <string name="profile_user_id">Пайдаланушы ID</string>
 
     <string name="settings_title">Баптаулар</string>
     <string name="settings_language">Тіл</string>

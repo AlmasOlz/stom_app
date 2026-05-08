@@ -39,7 +39,9 @@ fun ClinicListScreen(
     // Сүзу логикасы: қызметі бойынша + іздеу жолағы бойынша
     val filteredClinics = state.clinics.filter { clinic ->
         val matchesService = serviceName.isBlank() ||
-                clinic.services.any { it.equals(serviceName, ignoreCase = true) }
+                clinic.services.any { clinicService ->
+                    matchesRequestedService(clinicService = clinicService, requestedService = serviceName)
+                }
         val matchesSearch = clinic.name.contains(searchQuery, ignoreCase = true) ||
                 clinic.address.contains(searchQuery, ignoreCase = true)
         matchesService && matchesSearch
@@ -118,6 +120,37 @@ fun ClinicListScreen(
             }
         }
     }
+}
+
+private fun matchesRequestedService(clinicService: String, requestedService: String): Boolean {
+    val service = clinicService.normalizeService()
+    val requested = requestedService.normalizeService()
+    if (service.isBlank() || requested.isBlank()) return false
+    if (service == requested || service.contains(requested) || requested.contains(service)) return true
+
+    val requestedKeywords = when {
+        requested.contains("жұлу") || requested.contains("удал") -> listOf("жұлу", "удал", "хирург")
+        requested.contains("протез") -> listOf("протез", "ортопед")
+        requested.contains("канал") || requested.contains("пломб") -> listOf("канал", "пломб", "терап")
+        requested.contains("имплан") -> listOf("имплан")
+        requested.contains("брекет") -> listOf("брекет", "ортодонт")
+        else -> emptyList()
+    }
+    return requestedKeywords.any { keyword -> service.contains(keyword) }
+}
+
+private fun String.normalizeService(): String {
+    return lowercase()
+        .replace('ё', 'е')
+        .replace('қ', 'к')
+        .replace('ғ', 'г')
+        .replace('ң', 'н')
+        .replace('ү', 'у')
+        .replace('ұ', 'у')
+        .replace('ө', 'о')
+        .replace('һ', 'х')
+        .replace('і', 'и')
+        .trim()
 }
 
 @Composable
