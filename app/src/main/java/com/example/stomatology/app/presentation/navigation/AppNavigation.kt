@@ -197,6 +197,12 @@ fun AppNavigation() {
                     },
                     onNavigateToOtherServices = {
                         navController.navigate("other_services")
+                    },
+                    onQuickRebook = { clinicId, service ->
+                        navController.navigate("booking/${Uri.encode(clinicId)}/${Uri.encode(service)}")
+                    },
+                    onOpenClinic = { clinicId, service ->
+                        navController.navigate("clinic_detail/${Uri.encode(clinicId)}/${Uri.encode(service)}")
                     }
                 )
             }
