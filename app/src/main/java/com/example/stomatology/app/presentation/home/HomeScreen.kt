@@ -1,5 +1,10 @@
 package com.example.stomatology.app.presentation.home
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.location.LocationManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
@@ -15,6 +20,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,8 +33,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -37,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,25 +55,51 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.stomatology.app.R
+import com.example.stomatology.app.domain.model.Clinic
 import com.example.stomatology.app.presentation.profile.UserProfileViewModel
 import com.example.stomatology.app.presentation.theme.BackgroundGray
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 import androidx.annotation.DrawableRes
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
 
 @Composable
 fun HomeScreen(
     onNavigateToClinics: (String) -> Unit,
     onNavigateToAi: () -> Unit,
     onNavigateToOtherServices: () -> Unit,
+    onQuickRebook: (String, String) -> Unit,
+    onOpenClinic: (String, String) -> Unit,
+    homeViewModel: HomeViewModel = hiltViewModel(),
     profileViewModel: UserProfileViewModel = hiltViewModel()
 ) {
     val profileState by profileViewModel.uiState.collectAsState()
+    val homeState by homeViewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     val userName = profileState.user.firstName
         .ifBlank { profileState.user.displayName }
         .ifBlank { "Пайдаланушы" }
 
-    if (profileState.isLoading) {
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            context.fetchLastKnownLocation()?.let { latLng ->
+                homeViewModel.onLocationUpdated(latLng.latitude, latLng.longitude)
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    if (profileState.isLoading || homeState.isLoading) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -80,7 +116,10 @@ fun HomeScreen(
         photoUrl = profileState.user.photoUrl,
         onNavigateToClinics = onNavigateToClinics,
         onNavigateToAi = onNavigateToAi,
-        onNavigateToOtherServices = onNavigateToOtherServices
+        onNavigateToOtherServices = onNavigateToOtherServices,
+        onQuickRebook = onQuickRebook,
+        onOpenClinic = onOpenClinic,
+        uiState = homeState
     )
 }
 
@@ -90,7 +129,10 @@ private fun HomeContent(
     photoUrl: String,
     onNavigateToClinics: (String) -> Unit,
     onNavigateToAi: () -> Unit,
-    onNavigateToOtherServices: () -> Unit
+    onNavigateToOtherServices: () -> Unit,
+    onQuickRebook: (String, String) -> Unit,
+    onOpenClinic: (String, String) -> Unit,
+    uiState: HomeUiState
 ) {
     val scrollState = rememberScrollState()
 
@@ -98,7 +140,7 @@ private fun HomeContent(
         listOf(
             ServiceItem("Тіс жұлу", ServiceIcon.Drawable(R.drawable.ic_tooth_extract)) { onNavigateToClinics("Тіс жұлу") },
             ServiceItem("Протездеу", ServiceIcon.Drawable(R.drawable.ic_prosthesis)) { onNavigateToClinics("Протездеу") },
-            ServiceItem("Пломба / Канал", ServiceIcon.Drawable(R.drawable.ic_root_canal)) { onNavigateToClinics("Пломба / Канал") },
+            ServiceItem("Пломба / Канал емі", ServiceIcon.Drawable(R.drawable.ic_root_canal)) { onNavigateToClinics("Пломба / Канал") },
             ServiceItem("Имплант", ServiceIcon.Drawable(R.drawable.ic_implant)) { onNavigateToClinics("Имплант") },
             ServiceItem("AI талдау", ServiceIcon.Vector(Icons.Default.AutoAwesome)) { onNavigateToAi() },
             ServiceItem("Брекет", ServiceIcon.Drawable(R.drawable.ic_braces)) { onNavigateToClinics("Брекет") }
@@ -132,25 +174,21 @@ private fun HomeContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(PrimaryBlue)
-                .padding(24.dp)
-        ) {
-            Text(
-                text = "Өзіңізге керек қызметті таңдаңыз.",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        QuickRebookHeroCard(
+            quickRebook = uiState.quickRebook,
+            onQuickRebook = onQuickRebook
+        )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        NearbyClinicsSection(
+            clinics = uiState.nearbyClinics,
+            onOpenClinic = onOpenClinic
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "Қызметтер",
@@ -218,6 +256,130 @@ private fun HomeContent(
 
         Spacer(modifier = Modifier.height(24.dp))
     }
+}
+
+@Composable
+private fun QuickRebookHeroCard(
+    quickRebook: com.example.stomatology.app.domain.model.Appointment?,
+    onQuickRebook: (String, String) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = PrimaryBlue)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Жылдам қайта жазылу",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            if (quickRebook == null) {
+                Text("Алдыңғы жазба табылмады", color = Color(0xFFEAF2FF), fontSize = 13.sp)
+            } else {
+                Text(
+                    "Соңғы жазба: ${quickRebook.doctorName} • ${quickRebook.service}",
+                    color = Color(0xFFEAF2FF),
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) }
+                ) {
+                    Text("1 батырмамен жазылу")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NearbyClinicsSection(
+    clinics: List<Clinic>,
+    onOpenClinic: (String, String) -> Unit
+) {
+    Text(
+        text = "Жақын маңдағы клиникалар",
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color.Black,
+        modifier = Modifier.padding(horizontal = 16.dp)
+    )
+    Spacer(modifier = Modifier.height(10.dp))
+
+    if (clinics.isEmpty()) {
+        Text(
+            text = "Клиникалар әлі жүктелмеген немесе геолокацияға рұқсат берілмеген",
+            color = Color.Gray,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        return
+    }
+
+    val mapClinics = clinics.filter { it.latitude != 0.0 || it.longitude != 0.0 }
+    if (mapClinics.isNotEmpty()) {
+        val first = mapClinics.first()
+        val cameraState = rememberCameraPositionState {
+            position = CameraPosition.fromLatLngZoom(LatLng(first.latitude, first.longitude), 12f)
+        }
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(170.dp),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraState
+            ) {
+                mapClinics.take(5).forEach { clinic ->
+                    Marker(
+                        state = MarkerState(LatLng(clinic.latitude, clinic.longitude)),
+                        title = clinic.name,
+                        snippet = clinic.address
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+    }
+
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+    ) {
+        items(clinics.take(8)) { clinic ->
+            Card(
+                modifier = Modifier
+                    .width(220.dp)
+                    .clickable { onOpenClinic(clinic.id, clinic.services.firstOrNull().orEmpty()) },
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(clinic.name, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(clinic.address, color = Color.Gray, fontSize = 12.sp, maxLines = 1)
+                    Text("${clinic.rating} ★", color = PrimaryBlue, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("MissingPermission")
+private fun android.content.Context.fetchLastKnownLocation(): LatLng? {
+    val locationManager = getSystemService(LocationManager::class.java) ?: return null
+    val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+    val location = providers
+        .mapNotNull { provider -> runCatching { locationManager.getLastKnownLocation(provider) }.getOrNull() }
+        .maxByOrNull { it.time }
+        ?: return null
+    return LatLng(location.latitude, location.longitude)
 }
 
 @Composable

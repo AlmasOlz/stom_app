@@ -63,6 +63,38 @@ class AiAnalysisViewModel @Inject constructor(
         _uiState.value = AiState.Idle
     }
 
+    fun analyzeComplaint(complaint: String) {
+        val text = complaint.trim()
+        if (text.isBlank()) {
+            _uiState.value = AiState.Error("Шағым мәтінін енгізіңіз")
+            return
+        }
+
+        val lowered = text.lowercase()
+        val recommendation = when {
+            lowered.contains("қиса") || lowered.contains("брекет") || lowered.contains("тіс түз") ||
+                lowered.contains("прикус") -> {
+                "Алдын ала ұсыныс: ортодонтқа қаралу"
+            }
+            lowered.contains("ауыр") || lowered.contains("ісін") || lowered.contains("ірің") ||
+                lowered.contains("abscess") -> {
+                "Алдын ала ұсыныс: шұғыл түрде терапевт/хирург стоматологқа қаралу"
+            }
+            lowered.contains("жұлу") || lowered.contains("удал") || lowered.contains("ақыл тіс") -> {
+                "Алдын ала ұсыныс: хирург стоматологқа қаралу"
+            }
+            lowered.contains("имплант") || lowered.contains("протез") || lowered.contains("корон") -> {
+                "Алдын ала ұсыныс: ортопед/имплантолог маманына қаралу"
+            }
+            else -> "Алдын ала ұсыныс: жалпы стоматологқа тексерілуге жазылыңыз"
+        }
+
+        _uiState.value = AiState.ComplaintSuccess(
+            complaint = text,
+            recommendation = recommendation
+        )
+    }
+
 private suspend fun loadClinicsForReport(): List<Clinic> {
     val fromFirestore = loadClinicsDirectlyFromFirestore()
     if (fromFirestore.isNotEmpty()) {
@@ -94,6 +126,10 @@ private suspend fun loadClinicsForReport(): List<Clinic> {
 sealed class AiState {
     object Idle : AiState()
     object Loading : AiState()
+    data class ComplaintSuccess(
+        val complaint: String,
+        val recommendation: String
+    ) : AiState()
 
     data class Success(
         val result: AiAnalysisResult,
