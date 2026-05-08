@@ -270,6 +270,7 @@ private fun WizardStepIndicator(currentStep: Int) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun StepServiceScreen(
     state: BookingUiState,
     viewModel: BookingViewModel,
@@ -346,7 +347,7 @@ private fun StepServiceScreen(
             enabled = state.direction.isNotBlank() && state.clinicId.isNotBlank(),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-        ) { Text("Келесі →", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+        ) { Text("Келесі", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
     }
 }
 
@@ -425,7 +426,7 @@ private fun StepDoctorScreen(
             enabled = state.doctorId.isNotBlank(),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-        ) { Text("Келесі →", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+        ) { Text("Келесі", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
     }
 }
 
@@ -532,7 +533,7 @@ private fun StepDateTimeScreen(
             enabled = state.selectedDate.isNotBlank() && state.selectedTime.isNotBlank(),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-        ) { Text("Келесі →", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+        ) { Text("Келесі", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
     }
 }
 
@@ -589,7 +590,7 @@ private fun StepConfirmScreen(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-            ) { Text("Жазылуды растау ✓", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+            ) { Text("Жазылуды растау", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
         }
     }
 }
