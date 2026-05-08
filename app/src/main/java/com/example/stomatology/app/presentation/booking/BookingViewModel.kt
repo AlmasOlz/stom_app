@@ -42,6 +42,8 @@ data class BookingUiState(
     val doctorName: String = "",
     val clinicName: String = "",
     val direction: String = "",
+    val clinicServices: List<String> = emptyList(),
+    val isServiceMenuExpanded: Boolean = false,
     val duration: String = BookingDefaults.DEFAULT_DURATION,
     val isLoading: Boolean = false,
     val isBooked: Boolean = false,
@@ -111,12 +113,14 @@ class BookingViewModel @Inject constructor(
             it.copy(
                 clinicId = clinicId,
                 clinicName = if (it.clinicId == clinicId) it.clinicName else "",
+                clinicServices = if (it.clinicId == clinicId) it.clinicServices else emptyList(),
                 doctorId = "",
                 doctorName = "",
                 selectedDate = "",
                 selectedTime = "",
                 selectedSlotCapacity = 1,
                 doctors = emptyList(),
+                isServiceMenuExpanded = false,
                 isDoctorMenuExpanded = false,
                 availableSlots = defaultSlots(),
                 submitState = BookingSubmitState.Idle,
@@ -138,6 +142,10 @@ class BookingViewModel @Inject constructor(
 
     fun onDoctorMenuExpandedChange(expanded: Boolean) {
         _uiState.update { it.copy(isDoctorMenuExpanded = expanded) }
+    }
+
+    fun onServiceMenuExpandedChange(expanded: Boolean) {
+        _uiState.update { it.copy(isServiceMenuExpanded = expanded) }
     }
 
     fun onDateSelected(date: String) {
@@ -192,14 +200,16 @@ class BookingViewModel @Inject constructor(
     }
 
     fun onDirectionChange(value: String) {
+        val normalized = value.trim()
         _uiState.update {
             it.copy(
-                direction = value,
+                direction = normalized,
                 doctorId = "",
                 doctorName = "",
                 selectedTime = "",
                 selectedSlotCapacity = 1,
                 availableSlots = defaultSlots(),
+                isServiceMenuExpanded = false,
                 error = null
             )
         }
@@ -348,9 +358,14 @@ class BookingViewModel @Inject constructor(
                     .await()
             }.onSuccess { snapshot ->
                 val clinicName = snapshot.getString(FirestoreFields.NAME).orEmpty()
+                val clinicServices = (snapshot.get(FirestoreFields.SERVICES) as? List<*>)
+                    ?.mapNotNull { service -> service?.toString()?.trim()?.takeIf { it.isNotBlank() } }
+                    ?.distinct()
+                    .orEmpty()
                 _uiState.update {
                     it.copy(
                         clinicName = clinicName,
+                        clinicServices = clinicServices,
                         error = if (clinicName.isBlank() && it.error.isNullOrBlank()) {
                             ERROR_CLINIC_NOT_LOADED
                         } else {

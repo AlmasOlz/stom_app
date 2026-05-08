@@ -34,7 +34,7 @@ import com.example.stomatology.app.presentation.ai_analysis.AiAnalysisScreen
 import com.example.stomatology.app.presentation.auth.AuthViewModel
 import com.example.stomatology.app.presentation.auth.LoginScreen
 import com.example.stomatology.app.presentation.auth.RegistrationScreen
-import com.example.stomatology.app.presentation.booking.BookingScreen
+import com.example.stomatology.app.presentation.booking.BookingWizardScreen
 import com.example.stomatology.app.presentation.clinics.ClinicDetailScreen
 import com.example.stomatology.app.presentation.clinics.ClinicListScreen
 import com.example.stomatology.app.presentation.doctor_dashboard.DoctorAppointmentDetailScreen
@@ -276,7 +276,7 @@ fun AppNavigation() {
                 val id = Uri.decode(backStack.arguments?.getString("clinicId") ?: "")
                 val service = Uri.decode(backStack.arguments?.getString("serviceName") ?: "")
 
-                BookingScreen(
+                BookingWizardScreen(
                     clinicId = id,
                     serviceName = service,
                     onBookingComplete = {
