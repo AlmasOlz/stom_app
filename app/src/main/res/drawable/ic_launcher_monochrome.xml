@@ -4,6 +4,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Themed icon: simplified tooth silhouette (full-color logo is not suitable for monochrome) -->
     <path
         android:fillColor="#FFFFFFFF"
         android:fillType="nonZero"

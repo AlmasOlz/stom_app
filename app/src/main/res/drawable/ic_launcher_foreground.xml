@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M54,22C40,22 27,34 27,49V61C27,71 34,78 43,78H46.5L49,88L51.5,78H56.5L59,88L61.5,78H65C74,78 81,71 81,61V49C81,34 68,22 54,22Z" />
-</vector>
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_dentai"
+    android:insetLeft="10dp"
+    android:insetTop="12dp"
+    android:insetRight="10dp"
+    android:insetBottom="14dp" />
