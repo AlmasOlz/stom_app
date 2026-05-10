@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_notifications">Хабарламалар</string>
+    <string name="nav_dashboard">Бақылау</string>
+    <string name="nav_home">Басты бет</string>
+    <string name="nav_records">Жазбалар</string>
+    <string name="nav_profile">Профиль</string>
+    <string name="nav_admin">Әкімші</string>
+    <string name="nav_appointments">Жазбалар</string>
+</resources>

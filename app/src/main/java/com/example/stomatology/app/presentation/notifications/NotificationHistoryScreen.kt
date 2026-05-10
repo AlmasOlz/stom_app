@@ -23,20 +23,24 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.stomatology.app.R
 import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
@@ -52,22 +56,23 @@ enum class NotificationType { MISSED, SUCCESS, INFO }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationHistoryScreen(onBack: () -> Unit) {
+    val missedTitle = stringResource(R.string.notification_demo_missed_title)
     val notifications = listOf(
         NotificationItem(
-            title = "Өткізіп алдыңыз",
-            description = "Таңертеңгі тіс тазалауды өткізіп алдыңыз. Гигиенаны ұмытпаңыз.",
+            title = missedTitle,
+            description = stringResource(R.string.notification_demo_missed_brushing),
             time = "08:30",
             type = NotificationType.MISSED
         ),
         NotificationItem(
-            title = "Өткізіп алдыңыз",
-            description = "Тіс протезін тазалауды өткізіп алдыңыз. Күніне екі рет жасау ұсынылады.",
+            title = missedTitle,
+            description = stringResource(R.string.notification_demo_missed_prosthesis),
             time = "08:00",
             type = NotificationType.MISSED
         ),
         NotificationItem(
-            title = "Құттықтаймыз!",
-            description = "Тамаша! Сіз 7 күн қатарынан ауыз шайғышты қолданып жүрсіз.",
+            title = stringResource(R.string.notification_demo_success_title),
+            description = stringResource(R.string.notification_demo_success_body),
             time = "09:00",
             type = NotificationType.SUCCESS
         )
@@ -75,11 +80,28 @@ fun NotificationHistoryScreen(onBack: () -> Unit) {
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Хабарламалар", fontWeight = FontWeight.Bold, color = Color.White) },
-                navigationIcon = { AppBackButton(onClick = onBack, onPrimary = true) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = PrimaryBlue)
-            )
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 1.dp,
+                shadowElevation = 2.dp
+            ) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(R.string.nav_notifications),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    navigationIcon = { AppBackButton(onClick = onBack, minimal = true) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
         },
         containerColor = Color(0xFFF8F9FA)
     ) { padding ->
@@ -92,7 +114,7 @@ fun NotificationHistoryScreen(onBack: () -> Unit) {
         ) {
             item {
                 Text(
-                    "Бүгін",
+                    stringResource(R.string.notifications_section_today),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Gray,

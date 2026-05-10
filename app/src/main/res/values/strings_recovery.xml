@@ -1,28 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">stomatology</string>
-
-    <string name="doctor_list_title">Дәрігерді таңдау</string>
-    <string name="doctor_list_hero">Тісті ауыртпай және қауіпсіз емдеу</string>
-    <string name="doctor_list_details">Толығырақ</string>
-    <string name="doctor_list_section_title">Біздің дәрігерлер</string>
-    <string name="doctor_list_empty">Дәрігерлер әлі қосылмаған</string>
-    <string name="doctor_list_default_specialty">Стоматолог</string>
-    <string name="doctor_list_load_error">Дәрігерлерді жүктеу сәтсіз аяқталды</string>
-
-    <string name="tracking_user_fallback">Пайдаланушы</string>
-    <string name="tracking_greeting">Сәлем, %1$s</string>
-    <string name="tracking_current_progress">Ағымдағы прогресс</string>
-    <string name="tracking_treatment_tooth_extraction">Тіс жұлғаннан кейін</string>
-    <string name="tracking_step_format">Қадам %1$d/%2$d</string>
-    <string name="tracking_weekly_progress">Апталық прогресс:</string>
-    <string name="tracking_navigation_title">Өту:</string>
-    <string name="tracking_tips">Кеңестер</string>
-    <string name="tracking_daily_reminders">Күнделікті\nеске салғыштар</string>
-    <string name="tracking_videos_title">Ауыз қуысы күтімі бойынша бейнелер</string>
-    <string name="tracking_video_brushing">Тісті тазалау</string>
-    <string name="tracking_video_flossing">Тіс жібі</string>
-    <string name="tracking_video_mouthwash">Шайғыш</string>
-
     <string name="recovery_title">Тезірек\nсауығып кетіңіз!</string>
     <string name="recovery_hero">Операциядан кейінгі\nнұсқаулықтармен\nосында танысыңыз:</string>
     <string name="recovery_general_title">Жалпы нұсқаулықтар:</string>
@@ -55,7 +32,4 @@
         <item>Тампонды алған соң дәрігер жазып берген дәрілерді қабылдаңыз.</item>
         <item>24 сағаттан соң күніне 3-4 рет жылы тұзды сумен шайыңыз.</item>
     </string-array>
-    <string name="clinic_working_hours_default">Дс-Сб: 09:00 - 20:00</string>
-    <string name="clinic_status_open">Ашық</string>
-    <string name="clinic_status_closed">Жабық</string>
 </resources>

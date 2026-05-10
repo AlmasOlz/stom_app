@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tracking_user_fallback">Пайдаланушы</string>
+    <string name="tracking_greeting">Сәлем, %1$s</string>
+    <string name="tracking_current_progress">Ағымдағы прогресс</string>
+    <string name="tracking_treatment_tooth_extraction">Тіс жұлғаннан кейін</string>
+    <string name="tracking_step_format">Қадам %1$d/%2$d</string>
+    <string name="tracking_weekly_progress">Апталық прогресс:</string>
+    <string name="tracking_navigation_title">Өту:</string>
+    <string name="tracking_tips">Кеңестер</string>
+    <string name="tracking_daily_reminders">Күнделікті\nеске салғыштар</string>
+    <string name="tracking_videos_title">Ауыз қуысы күтімі бойынша бейнелер</string>
+    <string name="tracking_video_brushing">Тісті тазалау</string>
+    <string name="tracking_video_flossing">Тіс жібі</string>
+    <string name="tracking_video_mouthwash">Шайғыш</string>
+</resources>

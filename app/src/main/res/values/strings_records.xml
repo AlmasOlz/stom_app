@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="records_title">Менің жазбаларым</string>
+    <string name="records_tab_all">Барлығы</string>
+    <string name="records_tab_upcoming">Алдағы</string>
+    <string name="records_tab_past">Өткен</string>
+    <string name="records_empty_all">Әзірге жазбалар жоқ</string>
+    <string name="records_empty_upcoming">Алдағы жазбалар жоқ</string>
+    <string name="records_empty_past">Өткен жазбалар жоқ</string>
+    <string name="records_error_generic">Жүктеу қатесі</string>
+</resources>

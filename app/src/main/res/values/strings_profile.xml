@@ -1,25 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="nav_notifications">Уведомления</string>
-    <string name="nav_dashboard">Трекер</string>
-    <string name="nav_home">Главная</string>
-    <string name="nav_records">Записи</string>
-    <string name="nav_profile">Профиль</string>
-    <string name="nav_admin">Админ</string>
-    <string name="nav_appointments">Записи</string>
-
-    <string name="profile_name_fallback">Пользователь</string>
-    <string name="profile_email_missing">Электронная почта не указана</string>
-    <string name="profile_phone_missing">Телефон не указан</string>
+    <string name="profile_name_fallback">Пайдаланушы</string>
+    <string name="profile_email_missing">Электрондық пошта көрсетілмеген</string>
+    <string name="profile_phone_missing">Телефон көрсетілмеген</string>
     <string name="profile_edit">Профильді өңдеу</string>
     <string name="profile_edit_subtitle">Аты-жөн, телефон және фото</string>
     <string name="profile_notifications">Хабарламалар</string>
     <string name="profile_notifications_subtitle">Еске салғыштар мен жаңалықтар</string>
     <string name="profile_settings">Қосымша баптаулар</string>
-    <string name="profile_settings_subtitle">Тіл, қауіпсіздік және шығу</string>
-    <string name="profile_photo">Фото профиля</string>
-    <string name="profile_change_photo">Изменить фото</string>
+    <string name="profile_settings_subtitle">Қауіпсіздік және шығу</string>
+    <string name="profile_photo">Профиль фотосы</string>
+    <string name="profile_change_photo">Фото өзгерту</string>
     <string name="profile_personal_info">Жеке ақпарат</string>
-    <string name="profile_email">Электронная почта</string>
+    <string name="profile_email">Электрондық пошта</string>
     <string name="profile_phone">Телефон</string>
     <string name="profile_doctor_profile">Дәрігер профилі</string>
     <string name="profile_specialty">Мамандығы</string>
@@ -31,11 +24,7 @@
     <string name="profile_user_id">Пайдаланушы ID</string>
 
     <string name="settings_title">Баптаулар</string>
-    <string name="settings_language">Тіл</string>
-    <string name="settings_kz">Қазақша</string>
-    <string name="settings_ru">Русский</string>
-    <string name="settings_selected_kz">Таңдалған тіл: Қазақша</string>
-    <string name="settings_selected_ru">Таңдалған тіл: Русский</string>
+    <string name="settings_interface_language">Интерфейс тілі: қазақша</string>
     <string name="settings_signout">Шығу</string>
 
     <string name="action_save">Сақтау</string>
@@ -47,7 +36,4 @@
     <string name="profile_photo_by_url_title">Фото сілтемесін енгізу</string>
     <string name="profile_photo_by_url_hint">Тегін нұсқа үшін фотоның ашық URL-сілтемесін енгізіңіз</string>
     <string name="profile_photo_read_error">Фотоны оқу мүмкін болмады</string>
-    <string name="clinic_working_hours_default">Пн-Сб: 09:00 - 20:00</string>
-    <string name="clinic_status_open">Открыто</string>
-    <string name="clinic_status_closed">Закрыто</string>
 </resources>

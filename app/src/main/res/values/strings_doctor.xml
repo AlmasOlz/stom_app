@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="doctor_list_title">Дәрігерді таңдау</string>
+    <string name="doctor_list_hero">Тісті ауыртпай және қауіпсіз емдеу</string>
+    <string name="doctor_list_details">Толығырақ</string>
+    <string name="doctor_list_section_title">Біздің дәрігерлер</string>
+    <string name="doctor_list_empty">Дәрігерлер әлі қосылмаған</string>
+    <string name="doctor_list_default_specialty">Стоматолог</string>
+    <string name="doctor_list_load_error">Дәрігерлерді жүктеу сәтсіз аяқталды</string>
+</resources>

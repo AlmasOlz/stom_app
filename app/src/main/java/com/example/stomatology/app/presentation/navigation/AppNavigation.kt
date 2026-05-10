@@ -1,9 +1,12 @@
 package com.example.stomatology.app.presentation.navigation
 
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
@@ -12,16 +15,24 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.example.stomatology.app.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -53,17 +64,81 @@ import com.example.stomatology.app.presentation.records.MyRecordsScreen
 import com.example.stomatology.app.presentation.recovery.OtherServicesScreen
 import com.example.stomatology.app.presentation.reminders.RemindersScreen
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
+import com.example.stomatology.app.presentation.theme.SecondaryBlue
 import com.example.stomatology.app.presentation.tracking.TrackingScreen
 
 sealed class BottomNavItem(
     val route: String,
-    val icon: ImageVector
+    val icon: ImageVector,
+    @StringRes val labelRes: Int
 ) {
-    object Notifications : BottomNavItem("notifications", Icons.Default.Notifications)
-    object Dashboard : BottomNavItem("dashboard", Icons.Default.Menu)
-    object Home : BottomNavItem("home", Icons.Default.Home)
-    object Records : BottomNavItem("records", Icons.AutoMirrored.Filled.List)
-    object Profile : BottomNavItem("profile", Icons.Default.Person)
+    object Notifications : BottomNavItem("notifications", Icons.Default.Notifications, R.string.nav_notifications)
+    object Dashboard : BottomNavItem("dashboard", Icons.Default.Menu, R.string.nav_dashboard)
+    object Home : BottomNavItem("home", Icons.Default.Home, R.string.nav_home)
+    object Records : BottomNavItem("records", Icons.AutoMirrored.Filled.List, R.string.nav_records)
+    object Profile : BottomNavItem("profile", Icons.Default.Person, R.string.nav_profile)
+}
+
+private data class NavBarTab(
+    val route: String,
+    val icon: ImageVector,
+    @StringRes val labelRes: Int
+)
+
+@Composable
+private fun StyledBottomNavigationBar(
+    currentRoute: String?,
+    tabs: List<NavBarTab>,
+    alwaysShowLabels: Boolean,
+    onNavigateTo: (String) -> Unit
+) {
+    val shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp,
+        tonalElevation = 2.dp
+    ) {
+        NavigationBar(
+            containerColor = Color.Transparent,
+            tonalElevation = 0.dp
+        ) {
+            tabs.forEach { tab ->
+                val selected = currentRoute == tab.route
+                val label = stringResource(tab.labelRes)
+                NavigationBarItem(
+                    selected = selected,
+                    onClick = {
+                        if (currentRoute != tab.route) {
+                            onNavigateTo(tab.route)
+                        }
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = tab.icon,
+                            contentDescription = label
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PrimaryBlue,
+                        selectedTextColor = PrimaryBlue,
+                        indicatorColor = SecondaryBlue,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
+                    ),
+                    alwaysShowLabel = alwaysShowLabels
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -413,28 +488,18 @@ fun BottomNavigationBar(
         BottomNavItem.Records,
         BottomNavItem.Profile
     )
-
-    NavigationBar(containerColor = PrimaryBlue) {
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = null
-                    )
-                },
-                selected = currentRoute == item.route,
-                onClick = {
-                    if (currentRoute != item.route) {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
-                    }
-                }
-            )
+    val tabs = items.map { NavBarTab(it.route, it.icon, it.labelRes) }
+    StyledBottomNavigationBar(
+        currentRoute = currentRoute,
+        tabs = tabs,
+        alwaysShowLabels = false,
+        onNavigateTo = { route ->
+            navController.navigate(route) {
+                popUpTo(navController.graph.startDestinationId)
+                launchSingleTop = true
+            }
         }
-    }
+    )
 }
 
 @Composable
@@ -447,28 +512,18 @@ fun DoctorBottomNavigationBar(
         DoctorBottomNavItem.Appointments,
         DoctorBottomNavItem.Profile
     )
-
-    NavigationBar(containerColor = PrimaryBlue) {
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = null
-                    )
-                },
-                selected = currentRoute == item.route,
-                onClick = {
-                    if (currentRoute != item.route) {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
-                    }
-                }
-            )
+    val tabs = items.map { NavBarTab(it.route, it.icon, it.labelRes) }
+    StyledBottomNavigationBar(
+        currentRoute = currentRoute,
+        tabs = tabs,
+        alwaysShowLabels = true,
+        onNavigateTo = { route ->
+            navController.navigate(route) {
+                popUpTo(navController.graph.startDestinationId)
+                launchSingleTop = true
+            }
         }
-    }
+    )
 }
 
 @Composable
@@ -480,26 +535,16 @@ fun AdminBottomNavigationBar(
         AdminBottomNavItem.Dashboard,
         AdminBottomNavItem.Profile
     )
-
-    NavigationBar(containerColor = PrimaryBlue) {
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = null
-                    )
-                },
-                selected = currentRoute == item.route,
-                onClick = {
-                    if (currentRoute != item.route) {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
-                    }
-                }
-            )
+    val tabs = items.map { NavBarTab(it.route, it.icon, it.labelRes) }
+    StyledBottomNavigationBar(
+        currentRoute = currentRoute,
+        tabs = tabs,
+        alwaysShowLabels = true,
+        onNavigateTo = { route ->
+            navController.navigate(route) {
+                popUpTo(navController.graph.startDestinationId)
+                launchSingleTop = true
+            }
         }
-    }
+    )
 }

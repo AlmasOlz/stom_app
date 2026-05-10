@@ -1,6 +1,7 @@
 package com.example.stomatology.app.presentation.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +30,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -48,6 +53,7 @@ import com.example.stomatology.app.R
 import com.example.stomatology.app.core.firebase.UserRoles
 import com.example.stomatology.app.domain.model.UserProfile
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
+import com.example.stomatology.app.presentation.theme.SecondaryBlue
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -88,35 +94,49 @@ fun ProfileScreen(
             .verticalScroll(rememberScrollState())
             .background(Color(0xFFF8F9FA))
     ) {
+        val headerShape = RoundedCornerShape(bottomStart = 36.dp, bottomEnd = 36.dp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
-                .background(
-                    color = PrimaryBlue,
-                    shape = RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp)
-                )
+                .height(224.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(headerShape)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                SecondaryBlue,
+                                Color(0xFFF2F8FC),
+                                Color(0xFFF8F9FA)
+                            )
+                        )
+                    )
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
-                    .padding(16.dp),
+                    .statusBarsPadding()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = stringResource(R.string.profile_notifications),
-                    tint = Color.White,
-                    modifier = Modifier.clickable { onNotifications() }
-                )
+                IconButton(onClick = onNotifications) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = stringResource(R.string.profile_notifications),
+                        tint = PrimaryBlue
+                    )
+                }
 
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = stringResource(R.string.profile_edit),
-                    tint = Color.White,
-                    modifier = Modifier.clickable { onEditProfile() }
-                )
+                IconButton(onClick = onEditProfile) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = stringResource(R.string.profile_edit),
+                        tint = PrimaryBlue
+                    )
+                }
             }
 
             ProfileAvatar(
@@ -271,7 +291,8 @@ private fun ProfileAvatar(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(CircleShape)
-                .background(Color(0xFFE1F5FE)),
+                .border(3.dp, Color.White, CircleShape)
+                .background(Color(0xFFE8F4FA)),
             contentAlignment = Alignment.Center
         ) {
             if (user.photoUrl.isNotBlank()) {
@@ -291,21 +312,26 @@ private fun ProfileAvatar(
             }
         }
 
-        Box(
+        Surface(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .size(34.dp)
-                .clip(CircleShape)
-                .background(Color.White)
-                .padding(5.dp),
-            contentAlignment = Alignment.Center
+                .size(36.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp,
+            shadowElevation = 2.dp
         ) {
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = stringResource(R.string.profile_change_photo),
-                tint = PrimaryBlue,
-                modifier = Modifier.size(18.dp)
-            )
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.profile_change_photo),
+                    tint = PrimaryBlue,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }
