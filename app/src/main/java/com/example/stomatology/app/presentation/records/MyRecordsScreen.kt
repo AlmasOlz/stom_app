@@ -7,12 +7,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+
+
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +29,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -410,12 +415,85 @@ private fun AppointmentCard(
 
             if (isActive) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onReschedule) {
-                        Text("Уақытты өзгерту")
+                val actionLabelSize = 12.sp
+                val actionLineHeight = 14.sp
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = onReschedule,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = PrimaryBlue,
+                            disabledContainerColor = Color.White.copy(alpha = 0.55f),
+                            disabledContentColor = PrimaryBlue.copy(alpha = 0.45f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Уақытты",
+                                color = PrimaryBlue,
+                                fontSize = actionLabelSize,
+                                lineHeight = actionLineHeight,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "ауыстыру",
+                                color = PrimaryBlue,
+                                fontSize = actionLabelSize,
+                                lineHeight = actionLineHeight,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
-                    OutlinedButton(onClick = onCancel) {
-                        Text("Бас тарту")
+                    Button(
+                        onClick = onCancel,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = PrimaryBlue,
+                            disabledContainerColor = Color.White.copy(alpha = 0.55f),
+                            disabledContentColor = PrimaryBlue.copy(alpha = 0.45f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Бас",
+                                color = PrimaryBlue,
+                                fontSize = actionLabelSize,
+                                lineHeight = actionLineHeight,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "тарту",
+                                color = PrimaryBlue,
+                                fontSize = actionLabelSize,
+                                lineHeight = actionLineHeight,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
