@@ -268,7 +268,12 @@ class MyRecordsViewModel @Inject constructor(
     }
 
     private fun firestoreErrorMessage(e: Throwable): String {
-        val fe = e as? FirebaseFirestoreException ?: return e.message ?: "Жазбаларды жүктеу қатесі"
+        // Sometimes Firestore exceptions are wrapped inside another throwable,
+        // so we walk the cause chain to find the real FirebaseFirestoreException.
+        val fe = generateSequence(e) { it.cause }
+            .filterIsInstance<FirebaseFirestoreException>()
+            .firstOrNull()
+            ?: return e.message ?: "Жазбаларды жүктеу қатесі"
         return when (fe.code) {
             FirebaseFirestoreException.Code.PERMISSION_DENIED ->
                 "Firestore: рұқсат жоқ (rules немесе auth)"
