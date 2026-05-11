@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="common_back">Артқа</string>
+    <string name="auth_password_show">Құпия сөзді көрсету</string>
+    <string name="auth_password_hide">Құпия сөзді жасыру</string>
 </resources>
