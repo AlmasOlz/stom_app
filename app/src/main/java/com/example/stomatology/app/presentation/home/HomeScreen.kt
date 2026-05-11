@@ -1,5 +1,13 @@
 package com.example.stomatology.app.presentation.home
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
+import android.location.LocationManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
@@ -28,8 +36,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -39,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,25 +58,64 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.stomatology.app.R
+import com.example.stomatology.app.domain.model.Appointment
+import com.example.stomatology.app.domain.model.Clinic
 import com.example.stomatology.app.presentation.profile.UserProfileViewModel
 import com.example.stomatology.app.presentation.theme.BackgroundGray
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 import androidx.annotation.DrawableRes
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 
 @Composable
 fun HomeScreen(
     onNavigateToClinics: (String) -> Unit,
     onNavigateToAi: () -> Unit,
     onNavigateToOtherServices: () -> Unit,
+    onQuickRebook: (String, String) -> Unit,
+    onOpenClinic: (String, String) -> Unit,
+    homeViewModel: HomeViewModel = hiltViewModel(),
     profileViewModel: UserProfileViewModel = hiltViewModel()
 ) {
     val profileState by profileViewModel.uiState.collectAsState()
+    val homeState by homeViewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     val userName = profileState.user.firstName
         .ifBlank { profileState.user.displayName }
         .ifBlank { "Пайдаланушы" }
 
-    if (profileState.isLoading) {
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val hasPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (hasPermission) {
+            context.fetchCurrentLocation { latLng ->
+                homeViewModel.onLocationUpdated(latLng.latitude, latLng.longitude)
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        locationPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
+
+    if (profileState.isLoading || homeState.isLoading) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -82,7 +132,10 @@ fun HomeScreen(
         photoUrl = profileState.user.photoUrl,
         onNavigateToClinics = onNavigateToClinics,
         onNavigateToAi = onNavigateToAi,
-        onNavigateToOtherServices = onNavigateToOtherServices
+        onNavigateToOtherServices = onNavigateToOtherServices,
+        onQuickRebook = onQuickRebook,
+        onOpenClinic = onOpenClinic,
+        uiState = homeState
     )
 }
 
@@ -92,7 +145,10 @@ private fun HomeContent(
     photoUrl: String,
     onNavigateToClinics: (String) -> Unit,
     onNavigateToAi: () -> Unit,
-    onNavigateToOtherServices: () -> Unit
+    onNavigateToOtherServices: () -> Unit,
+    onQuickRebook: (String, String) -> Unit,
+    onOpenClinic: (String, String) -> Unit,
+    uiState: HomeUiState
 ) {
     val scrollState = rememberScrollState()
 
@@ -100,38 +156,10 @@ private fun HomeContent(
         listOf(
             ServiceItem("Тіс жұлу", ServiceIcon.Drawable(R.drawable.ic_tooth_extract)) { onNavigateToClinics("Тіс жұлу") },
             ServiceItem("Протездеу", ServiceIcon.Drawable(R.drawable.ic_prosthesis)) { onNavigateToClinics("Протездеу") },
-            ServiceItem("Пломба / Канал", ServiceIcon.Drawable(R.drawable.ic_root_canal)) { onNavigateToClinics("Пломба / Канал") },
+            ServiceItem("Пломба / Канал емі", ServiceIcon.Drawable(R.drawable.ic_root_canal)) { onNavigateToClinics("Пломба / Канал") },
             ServiceItem("Имплант", ServiceIcon.Drawable(R.drawable.ic_implant)) { onNavigateToClinics("Имплант") },
             ServiceItem("AI талдау", ServiceIcon.Vector(Icons.Default.AutoAwesome)) { onNavigateToAi() },
             ServiceItem("Брекет", ServiceIcon.Drawable(R.drawable.ic_braces)) { onNavigateToClinics("Брекет") }
-        )
-    }
-    val infoCards = remember(onNavigateToAi, onNavigateToClinics) {
-        listOf(
-            HomeInfoCardItem(
-                title = "Анестезияға аллергияны тексеру",
-                text = "Ем алдында аллергия қаупі болса, дәрігермен кеңесіп, қажет жағдайда тест тапсырыңыз.",
-                actionText = "Толығырақ",
-                onClick = { }
-            ),
-            HomeInfoCardItem(
-                title = "Ем алдында маңызды ақпарат",
-                text = "Аллергияңыз, қабылдайтын дәрілеріңіз және созылмалы ауруларыңыз туралы дәрігерге айтыңыз.",
-                actionText = "Кеңес",
-                onClick = { }
-            ),
-            HomeInfoCardItem(
-                title = "AI тіс талдауы",
-                text = "Сурет жүктеп, тістеріңіздің жағдайы бойынша бастапқы талдау алыңыз.",
-                actionText = "Талдау",
-                onClick = onNavigateToAi
-            ),
-            HomeInfoCardItem(
-                title = "Онлайн жазылу",
-                text = "Клиниканы, дәрігерді және ыңғайлы уақытты таңдап, қабылдауға жазылыңыз.",
-                actionText = "Жазылу",
-                onClick = { onNavigateToClinics("Тіс емдеу") }
-            )
         )
     }
 
@@ -162,37 +190,24 @@ private fun HomeContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(PrimaryBlue)
-                .padding(24.dp)
-        ) {
-            Text(
-                text = "Өзіңізге керек қызметті таңдаңыз.",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        QuickRebookHeroCard(
+            quickRebook = uiState.quickRebook,
+            onQuickRebook = onQuickRebook
+        )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
-        ) {
-            items(infoCards, key = { it.title }) { item ->
-                HomeInfoCard(item = item)
+        NearbyClinicsSection(
+            clinics = uiState.nearbyClinics,
+            onOpenClinic = onOpenClinic,
+            userLocation = uiState.userLat?.let { lat ->
+                uiState.userLon?.let { lon -> LatLng(lat, lon) }
             }
-        }
+        )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "Қызметтер",
@@ -263,6 +278,211 @@ private fun HomeContent(
 }
 
 @Composable
+private fun QuickRebookHeroCard(
+    quickRebook: Appointment?,
+    onQuickRebook: (String, String) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = PrimaryBlue)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Жылдам қайта жазылу",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            if (quickRebook == null) {
+                Text("Алдыңғы жазба табылмады", color = Color(0xFFEAF2FF), fontSize = 13.sp)
+            } else {
+                Text(
+                    text = buildQuickRebookSummary(quickRebook),
+                    color = Color(0xFFEAF2FF),
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) }
+                ) {
+                    Text("1 батырмамен жазылу")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NearbyClinicsSection(
+    clinics: List<Clinic>,
+    onOpenClinic: (String, String) -> Unit,
+    userLocation: LatLng?
+) {
+    Text(
+        text = "Жақын маңдағы клиникалар",
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color.Black,
+        modifier = Modifier.padding(horizontal = 16.dp)
+    )
+    Spacer(modifier = Modifier.height(10.dp))
+
+    if (clinics.isEmpty()) {
+        Text(
+            text = "Клиникалар әлі жүктелмеген немесе геолокацияға рұқсат берілмеген",
+            color = Color.Gray,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        return
+    }
+
+    val mapClinics = clinics.filter { it.latitude != 0.0 || it.longitude != 0.0 }
+    val context = LocalContext.current
+    val canRenderMap = remember(context) { canRenderEmbeddedMap(context) }
+    if (mapClinics.isNotEmpty() && canRenderMap) {
+        val first = userLocation ?: LatLng(mapClinics.first().latitude, mapClinics.first().longitude)
+        val cameraState = rememberCameraPositionState {
+            position = CameraPosition.fromLatLngZoom(first, if (userLocation != null) 13f else 12f)
+        }
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(170.dp),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraState
+            ) {
+                mapClinics.take(5).forEach { clinic ->
+                    Marker(
+                        state = MarkerState(LatLng(clinic.latitude, clinic.longitude)),
+                        title = clinic.name,
+                        snippet = clinic.address
+                    )
+                }
+                userLocation?.let {
+                    Marker(
+                        state = MarkerState(position = it),
+                        title = "Сіздің орныңыз",
+                        snippet = "Ағымдағы мекенжай"
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+    } else if (mapClinics.isNotEmpty()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Text(
+                text = "Карта уақытша қолжетімсіз. Тізімнен клиниканы таңдап, картада ашуға болады.",
+                color = Color.Gray,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(12.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+    }
+
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+    ) {
+        items(clinics.take(8)) { clinic ->
+            Card(
+                modifier = Modifier
+                    .width(220.dp)
+                    .clickable { onOpenClinic(clinic.id, clinic.services.firstOrNull().orEmpty()) },
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(clinic.name, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(clinic.address, color = Color.Gray, fontSize = 12.sp, maxLines = 1)
+                    Text("${clinic.rating} ★", color = PrimaryBlue, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("MissingPermission")
+private fun Context.fetchCurrentLocation(onSuccess: (LatLng) -> Unit) {
+    val hasFine = ContextCompat.checkSelfPermission(
+        this,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+    val hasCoarse = ContextCompat.checkSelfPermission(
+        this,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+    if (!hasFine && !hasCoarse) return
+
+    val client = LocationServices.getFusedLocationProviderClient(this)
+    client.lastLocation
+        .addOnSuccessListener { location ->
+            if (location != null) {
+                onSuccess(LatLng(location.latitude, location.longitude))
+            } else {
+                val cts = CancellationTokenSource()
+                client.getCurrentLocation(
+                    if (hasFine) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                    cts.token
+                ).addOnSuccessListener { current ->
+                    if (current != null) {
+                        onSuccess(LatLng(current.latitude, current.longitude))
+                    } else {
+                        fetchLastKnownLocationFallback()?.let(onSuccess)
+                    }
+                }.addOnFailureListener {
+                    fetchLastKnownLocationFallback()?.let(onSuccess)
+                }
+            }
+        }
+        .addOnFailureListener {
+            fetchLastKnownLocationFallback()?.let(onSuccess)
+        }
+}
+
+@SuppressLint("MissingPermission")
+private fun Context.fetchLastKnownLocationFallback(): LatLng? {
+    val locationManager = getSystemService(LocationManager::class.java) ?: return null
+    val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+    val location = providers
+        .mapNotNull { provider -> runCatching { locationManager.getLastKnownLocation(provider) }.getOrNull() }
+        .maxByOrNull { it.time }
+        ?: return null
+    return LatLng(location.latitude, location.longitude)
+}
+
+private fun canRenderEmbeddedMap(context: android.content.Context): Boolean {
+    val hasGooglePlayServices = GoogleApiAvailability.getInstance()
+        .isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS
+    if (!hasGooglePlayServices) return false
+
+    val apiKey = runCatching {
+        val appInfo = context.packageManager.getApplicationInfo(
+            context.packageName,
+            android.content.pm.PackageManager.GET_META_DATA
+        )
+        appInfo.metaData?.getString("com.google.android.geo.API_KEY").orEmpty()
+    }.getOrDefault("")
+
+    return apiKey.isNotBlank()
+}
+
+@Composable
 private fun HomeAvatar(
     userName: String,
     photoUrl: String
@@ -291,52 +511,30 @@ private fun HomeAvatar(
     }
 }
 
-@Composable
-private fun HomeInfoCard(item: HomeInfoCardItem) {
-    Card(
-        modifier = Modifier
-            .width(300.dp)
-            .clickable { item.onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = item.title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            Text(
-                text = item.text,
-                fontSize = 13.sp,
-                color = Color(0xFF455A64),
-                lineHeight = 18.sp
-            )
-            Text(
-                text = item.actionText,
-                fontSize = 13.sp,
-                color = PrimaryBlue,
-                fontWeight = FontWeight.SemiBold
-            )
+private fun buildQuickRebookSummary(a: Appointment): String {
+    val parts = mutableListOf<String>()
+    val clinic = a.clinicName.trim()
+    if (clinic.isNotEmpty()) parts.add(clinic)
+    val doctor = a.doctorName.trim()
+    if (doctor.isNotEmpty()) parts.add(doctor)
+    val service = a.service.trim()
+    if (service.isNotEmpty()) parts.add(service)
+    val whenStr = buildString {
+        val d = a.date.trim()
+        val t = a.time.trim()
+        if (d.isNotEmpty()) append(d)
+        if (t.isNotEmpty()) {
+            if (isNotEmpty()) append(" ")
+            append(t)
         }
     }
+    if (whenStr.isNotEmpty()) parts.add(whenStr)
+    return if (parts.isEmpty()) "Соңғы жазба" else parts.joinToString(" • ")
 }
 
 data class ServiceItem(
     val title: String,
     val icon: ServiceIcon,
-    val onClick: () -> Unit
-)
-
-private data class HomeInfoCardItem(
-    val title: String,
-    val text: String,
-    val actionText: String,
     val onClick: () -> Unit
 )
 
