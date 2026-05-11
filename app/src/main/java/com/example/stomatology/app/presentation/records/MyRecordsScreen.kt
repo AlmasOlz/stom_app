@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 
-import androidx.compose.foundation.layout.weight
+
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -415,8 +415,8 @@ private fun AppointmentCard(
 
             if (isActive) {
                 Spacer(modifier = Modifier.height(12.dp))
-                val actionLabelSize = 11.sp
-                val actionLineHeight = 13.sp
+                val actionLabelSize = 12.sp
+                val actionLineHeight = 14.sp
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -425,7 +425,7 @@ private fun AppointmentCard(
                         onClick = onReschedule,
                         modifier = Modifier
                             .weight(1f)
-                            .height(46.dp),
+                            .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -462,7 +462,7 @@ private fun AppointmentCard(
                         onClick = onCancel,
                         modifier = Modifier
                             .weight(1f)
-                            .height(46.dp),
+                            .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                         colors = ButtonDefaults.buttonColors(
