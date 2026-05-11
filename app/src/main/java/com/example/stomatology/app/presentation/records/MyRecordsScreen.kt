@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -25,8 +27,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.DatePicker
@@ -45,10 +50,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.stomatology.app.R
 import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.example.stomatology.app.domain.model.AvailableSlot
@@ -67,7 +74,11 @@ fun MyRecordsScreen(
     val state by viewModel.uiState.collectAsState()
 
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
-    val tabs = listOf("Барлығы", "Алдағы", "Өткен")
+    val tabs = listOf(
+        stringResource(R.string.records_tab_all),
+        stringResource(R.string.records_tab_upcoming),
+        stringResource(R.string.records_tab_past)
+    )
     var rescheduleTarget by remember { mutableStateOf<Appointment?>(null) }
     var cancelTarget by remember { mutableStateOf<Appointment?>(null) }
     var rescheduleDate by rememberSaveable { mutableStateOf("") }
@@ -102,43 +113,69 @@ fun MyRecordsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFF8F9FA))
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(PrimaryBlue)
-                .padding(top = 40.dp, start = 20.dp, end = 20.dp, bottom = 16.dp)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 1.dp,
+            shadowElevation = 3.dp
         ) {
-            Column {
+            Column(
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(start = 4.dp, end = 12.dp, top = 8.dp, bottom = 4.dp)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    AppBackButton(onClick = onBack, minimal = true)
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Менің жазбаларым",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        text = stringResource(R.string.records_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
                     )
-                    AppBackButton(onClick = onBack, onPrimary = true)
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 TabRow(
                     selectedTabIndex = selectedTabIndex,
-                    containerColor = PrimaryBlue,
-                    contentColor = Color.White
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    indicator = { tabPositions ->
+                        if (selectedTabIndex < tabPositions.size) {
+                            TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                                height = 3.dp,
+                                color = PrimaryBlue
+                            )
+                        }
+                    },
+                    divider = {
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        )
+                    }
                 ) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = { selectedTabIndex = index },
-                            text = { Text(text = title, fontWeight = FontWeight.Bold) },
-                            selectedContentColor = Color.White,
-                            unselectedContentColor = Color.White.copy(alpha = 0.7f)
+                            text = {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = if (selectedTabIndex == index) FontWeight.SemiBold else FontWeight.Medium
+                                )
+                            },
+                            selectedContentColor = PrimaryBlue,
+                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -148,18 +185,22 @@ fun MyRecordsScreen(
         when {
             state.isLoading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryBlue)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(40.dp),
+                        color = PrimaryBlue,
+                        strokeWidth = 3.dp
+                    )
                 }
             }
             state.error != null && visibleAppointments.isEmpty() -> {
-                EmptyRecordsState(text = state.error ?: "Жүктеу қатесі")
+                EmptyRecordsState(text = state.error ?: stringResource(R.string.records_error_generic))
             }
             visibleAppointments.isEmpty() -> {
                 EmptyRecordsState(
                     text = when (selectedTabIndex) {
-                        1 -> "Алдағы жазбалар жоқ"
-                        2 -> "Өткен жазбалар жоқ"
-                        else -> "Әзірге жазбалар жоқ"
+                        1 -> stringResource(R.string.records_empty_upcoming)
+                        2 -> stringResource(R.string.records_empty_past)
+                        else -> stringResource(R.string.records_empty_all)
                     }
                 )
             }
@@ -440,7 +481,7 @@ private fun SlotChoiceGrid(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = slot.time, color = fg, fontWeight = FontWeight.Medium)
                             if (!enabled) {
-                                Text("Толы", color = fg, style = MaterialTheme.typography.labelSmall)
+                                Text("Толық", color = fg, style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -480,7 +521,7 @@ private fun RescheduleDatePickerDialog(
                 val date = datePickerState.selectedDateMillis?.let { convertMillisToDate(it) }.orEmpty()
                 onDatePicked(date)
             }) {
-                Text("OK")
+                Text("Таңдау")
             }
         },
         dismissButton = {

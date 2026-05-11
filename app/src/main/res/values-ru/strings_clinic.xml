@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="clinic_working_hours_default">Дс-Сб: 09:00 - 20:00</string>
+    <string name="clinic_status_open">Ашық</string>
+    <string name="clinic_status_closed">Жабық</string>
+</resources>

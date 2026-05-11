@@ -9,13 +9,10 @@ import com.example.stomatology.app.domain.repository.AppRepository
 import com.example.stomatology.app.domain.repository.AppointmentRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -58,7 +55,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         observeClinics()
-        observePatientAppointmentsWhenSignedIn()
+        observePatientAppointments()
     }
 
     fun onLocationUpdated(lat: Double, lon: Double) {
@@ -128,23 +125,16 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun observePatientAppointmentsWhenSignedIn() {
+    private fun observePatientAppointments() {
+        val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
-            auth.authUidChanges().distinctUntilChanged().collectLatest { uid ->
-                if (uid.isNullOrBlank()) {
-                    _uiState.update {
-                        it.copy(recentAppointments = emptyList(), quickRebook = null)
-                    }
-                    return@collectLatest
-                }
-                appointmentRepository.getAppointmentsForPatient(uid).collectLatest { appointments ->
-                    val recent = appointments.take(5)
-                    _uiState.update {
-                        it.copy(
-                            recentAppointments = recent,
-                            quickRebook = recent.firstOrNull()
-                        )
-                    }
+            appointmentRepository.getAppointmentsForPatient(uid).collectLatest { appointments ->
+                val recent = appointments.sortedByDescending { it.updatedAt }.take(5)
+                _uiState.update {
+                    it.copy(
+                        recentAppointments = recent,
+                        quickRebook = recent.firstOrNull()
+                    )
                 }
             }
         }
@@ -223,13 +213,4 @@ class HomeViewModel @Inject constructor(
         val c = 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))
         return earthRadiusKm * c
     }
-}
-
-private fun FirebaseAuth.authUidChanges() = callbackFlow {
-    val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-        trySend(firebaseAuth.currentUser?.uid)
-    }
-    addAuthStateListener(listener)
-    trySend(currentUser?.uid)
-    awaitClose { removeAuthStateListener(listener) }
 }

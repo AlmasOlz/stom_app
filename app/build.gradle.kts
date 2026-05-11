@@ -106,6 +106,7 @@ dependencies {
 
     implementation(libs.maps.compose)
     implementation(libs.play.services.maps)
+    implementation(libs.play.services.location)
     implementation(libs.coil.compose)
 
     implementation("androidx.room:room-runtime:2.6.1")

@@ -34,6 +34,13 @@ enum class BookingSubmitState {
     GeneralError
 }
 
+enum class BookingWizardStep {
+    Service,
+    Doctor,
+    DateTime,
+    Confirm
+}
+
 private fun resolveDoctorAuthUid(
     docId: String,
     uidField: String,
@@ -59,6 +66,7 @@ private fun looksLikeFirebaseUid(value: String): Boolean {
 
 data class BookingUiState(
     val clinicId: String = "",
+    val currentStep: BookingWizardStep = BookingWizardStep.Service,
     val selectedDate: String = "",
     val selectedTime: String = "",
     val selectedSlotCapacity: Int = 1,
@@ -134,6 +142,7 @@ class BookingViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 clinicId = clinicId,
+                currentStep = BookingWizardStep.Service,
                 clinicName = if (it.clinicId == clinicId) it.clinicName else "",
                 doctorId = "",
                 doctorName = "",
@@ -242,6 +251,62 @@ class BookingViewModel @Inject constructor(
     fun resetBookingState() {
         _uiState.value = BookingUiState()
         allDoctors = emptyList()
+    }
+
+    /** @return true егер қадам ішінде артқа өттік (экранды жабу керек емес) */
+    fun tryWizardBack(): Boolean {
+        val prev = when (_uiState.value.currentStep) {
+            BookingWizardStep.Service -> return false
+            BookingWizardStep.Doctor -> BookingWizardStep.Service
+            BookingWizardStep.DateTime -> BookingWizardStep.Doctor
+            BookingWizardStep.Confirm -> BookingWizardStep.DateTime
+        }
+        _uiState.update { it.copy(currentStep = prev, error = null) }
+        return true
+    }
+
+    fun goToNextStep() {
+        val s = _uiState.value
+        when (s.currentStep) {
+            BookingWizardStep.Service -> {
+                if (s.direction.isBlank()) {
+                    setValidationError("Қызметті таңдаңыз")
+                    return
+                }
+                _uiState.update { it.copy(currentStep = BookingWizardStep.Doctor, error = null) }
+            }
+
+            BookingWizardStep.Doctor -> {
+                if (s.doctorId.isBlank()) {
+                    setValidationError(ERROR_DOCTOR_REQUIRED)
+                    return
+                }
+                _uiState.update { it.copy(currentStep = BookingWizardStep.DateTime, error = null) }
+            }
+
+            BookingWizardStep.DateTime -> {
+                if (s.selectedDate.isBlank()) {
+                    setValidationError(ERROR_DATE_REQUIRED)
+                    return
+                }
+                if (s.selectedTime.isBlank()) {
+                    setValidationError(ERROR_TIME_REQUIRED)
+                    return
+                }
+                val slot = s.availableSlots.firstOrNull { it.time == s.selectedTime }
+                if (slot == null || !slot.isEnabled) {
+                    setValidationError(ERROR_SLOT_BUSY)
+                    return
+                }
+                _uiState.update { it.copy(currentStep = BookingWizardStep.Confirm, error = null) }
+            }
+
+            BookingWizardStep.Confirm -> Unit
+        }
+    }
+
+    fun selectServiceTitle(title: String) {
+        onDirectionChange(title)
     }
 
     fun confirmBooking() {

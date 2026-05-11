@@ -63,7 +63,42 @@ class AiAnalysisViewModel @Inject constructor(
         _uiState.value = AiState.Idle
     }
 
-private suspend fun loadClinicsForReport(): List<Clinic> {
+    /**
+     * Текст бойынша серверлік AI жоқ кезінде — алдын ала кеңес мәтіні.
+     * Нақты диагнозды дәрігер қояды.
+     */
+    fun analyzeComplaint(raw: String) {
+        val complaint = raw.trim()
+        if (complaint.isEmpty()) return
+        viewModelScope.launch {
+            _uiState.value = AiState.ComplaintSuccess(
+                complaint = complaint,
+                recommendation = buildComplaintRecommendation(complaint)
+            )
+        }
+    }
+
+    private fun buildComplaintRecommendation(text: String): String {
+        val t = text.lowercase()
+        return when {
+            t.contains("ауыр") || t.contains("ауыру") || t.contains("болып тұр") ->
+                "Ауырсу кариес тереңдеуі, пульпит немесе периодонтит сияқты жағдайлармен байланысты болуы мүмкін. Мүмкіндігінше тез стоматологқа көрініңіз."
+
+            t.contains("қан") || t.contains("ісін") || t.contains("қабыну") ->
+                "Қабыну немесе қан кету тіс немесе түбір аймағының зақымдануын көрсетуі мүмкін. Рентген және дәрігер тексерісі ұсынылады."
+
+            t.contains("суық") || t.contains("ыстық") || t.contains("сезімтал") ->
+                "Температуралық сезімталдық эмаль зақымы немесе терең кариес белгісі болуы мүмкін. Кәсіби тексеру керек."
+
+            t.contains("ретген") || t.contains("рентген") || t.contains("сурет жүк") ->
+                "Мәтін бойынша нақты диагноз қою мүмкін емес. «Рентген суретін таңдау» арқылы сурет жүктеп, AI талдауын алыңыз."
+
+            else ->
+                "Бұл тек алдын ала ақпарат, медициналық диагноз емес. Нақты диагноз бен ем жоспарын стоматолог айқындайды."
+        }
+    }
+
+    private suspend fun loadClinicsForReport(): List<Clinic> {
     val fromFirestore = loadClinicsDirectlyFromFirestore()
     if (fromFirestore.isNotEmpty()) {
         return fromFirestore
@@ -98,6 +133,11 @@ sealed class AiState {
     data class Success(
         val result: AiAnalysisResult,
         val report: AiAnalysisReport
+    ) : AiState()
+
+    data class ComplaintSuccess(
+        val complaint: String,
+        val recommendation: String
     ) : AiState()
 
     data class Error(val message: String) : AiState()

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notifications_section_today">Бүгін</string>
+    <string name="notification_demo_missed_title">Өткізіп алдыңыз</string>
+    <string name="notification_demo_missed_brushing">Таңертеңгі тіс тазалауды өткізіп алдыңыз. Гигиенаны ұмытпаңыз.</string>
+    <string name="notification_demo_missed_prosthesis">Тіс протезін тазалауды өткізіп алдыңыз. Күніне екі рет жасау ұсынылады.</string>
+    <string name="notification_demo_success_title">Құттықтаймыз!</string>
+    <string name="notification_demo_success_body">Тамаша! Сіз 7 күн қатарынан ауыз шайғышты қолданып жүрсіз.</string>
+</resources>

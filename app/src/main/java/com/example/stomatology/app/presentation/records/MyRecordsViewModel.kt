@@ -8,10 +8,13 @@ import com.example.stomatology.app.domain.model.AvailableSlot
 import com.example.stomatology.app.domain.repository.AppointmentRepository
 import com.example.stomatology.app.domain.repository.AppointmentValidationException
 import com.example.stomatology.app.domain.repository.SlotAlreadyBookedException
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestoreException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -240,6 +243,18 @@ class MyRecordsViewModel @Inject constructor(
 
         viewModelScope.launch {
             appointmentRepository.getAppointmentsForPatient(uid)
+                .catch { e ->
+                    Log.e(TAG, "getAppointmentsForPatient failed uid=$uid", e)
+                    val message = firestoreErrorMessage(e)
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            appointments = emptyList(),
+                            actionState = MyRecordActionState.GeneralError,
+                            error = message
+                        )
+                    }
+                }
                 .collectLatest { appointments ->
                     _uiState.update {
                         it.copy(
@@ -250,5 +265,22 @@ class MyRecordsViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    private fun firestoreErrorMessage(e: Throwable): String {
+        val fe = e as? FirebaseFirestoreException ?: return e.message ?: "Жазбаларды жүктеу қатесі"
+        return when (fe.code) {
+            FirebaseFirestoreException.Code.PERMISSION_DENIED ->
+                "Firestore: рұқсат жоқ (rules немесе auth)"
+            FirebaseFirestoreException.Code.FAILED_PRECONDITION ->
+                "Firestore: индекс қажет — Logcat-тегі сілтемені Firebase Console-да ашыңыз"
+            FirebaseFirestoreException.Code.UNAVAILABLE ->
+                "Желі қолжетімсіз, кейінірек қайталаңыз"
+            else -> fe.message ?: fe.code.name
+        }
+    }
+
+    companion object {
+        private const val TAG = "MyRecordsViewModel"
     }
 }

@@ -2,6 +2,7 @@ package com.example.stomatology.app.presentation.booking
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,18 +16,26 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -34,6 +43,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -50,29 +60,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import com.example.stomatology.app.core.booking.BookingDefaults
 import com.example.stomatology.app.domain.model.AvailableSlot
 import com.example.stomatology.app.domain.model.DoctorOption
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import java.util.TimeZone
 
-fun convertMillisToDate(millis: Long): String {
-    val formatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-    return formatter.format(Date(millis))
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,6 +87,7 @@ fun BookingScreen(
     clinicId: String,
     serviceName: String,
     onBookingComplete: () -> Unit,
+    onDismiss: () -> Unit = {},
     viewModel: BookingViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -98,6 +106,15 @@ fun BookingScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Қабылдауға жазылу", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { if (!viewModel.tryWizardBack()) onDismiss() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Артқа",
+                            tint = Color.White
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = PrimaryBlue,
                     titleContentColor = Color.White
@@ -109,7 +126,7 @@ fun BookingScreen(
             padding = padding,
             state = state,
             viewModel = viewModel,
-            scrollModifier = Modifier.verticalScroll(scrollState)
+            scrollState = scrollState
         )
     }
 
@@ -125,18 +142,316 @@ fun BookingScreen(
     }
 }
 
+@Composable
+private fun BookingWizardProgress(current: BookingWizardStep) {
+    val labels = listOf("Қызмет", "Дәрігер", "Күн & Уақыт", "Растау")
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
+    ) {
+        labels.forEachIndexed { index, label ->
+            val active = index == current.ordinal
+            val done = index < current.ordinal
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                done -> PrimaryBlue
+                                active -> Color.White
+                                else -> Color(0xFFE8ECF0)
+                            }
+                        )
+                        .then(
+                            if (active && !done) {
+                                Modifier.border(2.dp, PrimaryBlue, CircleShape)
+                            } else {
+                                Modifier
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (done) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "${index + 1}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = if (active) PrimaryBlue else Color.Gray
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = label,
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp,
+                    color = if (active) PrimaryBlue else Color.Gray,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2
+                )
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+    LinearProgressIndicator(
+        progress = (current.ordinal + 1f) / 4f,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(5.dp)
+            .clip(RoundedCornerShape(3.dp)),
+        color = PrimaryBlue,
+        trackColor = Color(0xFFE0E7EF),
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BookingServiceDropdown(
+    state: BookingUiState,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onSelectTitle: (String) -> Unit,
+    enabled: Boolean
+) {
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = onExpandedChange
+    ) {
+        OutlinedTextField(
+            value = state.direction,
+            onValueChange = {},
+            readOnly = true,
+            placeholder = {
+                Text("Қызметті таңдаңыз", color = Color.Gray.copy(alpha = 0.75f))
+            },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            },
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            enabled = enabled,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = PrimaryBlue,
+                unfocusedBorderColor = Color(0xFFD8DEE6),
+                focusedLabelColor = PrimaryBlue,
+                unfocusedLabelColor = Color.Gray
+            )
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) }
+        ) {
+            BookingDefaults.BOOKING_SERVICE_TITLES.forEach { title ->
+                DropdownMenuItem(
+                    text = { Text(title) },
+                    onClick = {
+                        onSelectTitle(title)
+                        onExpandedChange(false)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BookingDoctorDropdown(
+    state: BookingUiState,
+    onDoctorSelected: (DoctorOption) -> Unit,
+    onMenuExpandedChange: (Boolean) -> Unit
+) {
+    ExposedDropdownMenuBox(
+        expanded = state.isDoctorMenuExpanded,
+        onExpandedChange = onMenuExpandedChange
+    ) {
+        OutlinedTextField(
+            value = state.doctorName,
+            onValueChange = {},
+            readOnly = true,
+            placeholder = {
+                Text("Дәрігерді таңдаңыз", color = Color.Gray.copy(alpha = 0.75f))
+            },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.isDoctorMenuExpanded)
+            },
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            enabled = state.doctors.isNotEmpty(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = PrimaryBlue,
+                unfocusedBorderColor = Color(0xFFD8DEE6),
+                focusedLabelColor = PrimaryBlue,
+                unfocusedLabelColor = Color.Gray
+            )
+        )
+        DropdownMenu(
+            expanded = state.isDoctorMenuExpanded,
+            onDismissRequest = { onMenuExpandedChange(false) }
+        ) {
+            state.doctors.forEach { doctor ->
+                DropdownMenuItem(
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(doctor.name, fontWeight = FontWeight.Bold, color = Color.Black)
+                            Text(
+                                text = doctor.specialty.ifBlank { "—" },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                            if (doctor.experienceYears > 0) {
+                                Text(
+                                    text = "Тәжірибе: ${doctor.experienceYears} жыл",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    },
+                    onClick = {
+                        onDoctorSelected(doctor)
+                        onMenuExpandedChange(false)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionSheetField(
+    value: String,
+    label: String,
+    placeholder: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = enabled) { onClick() }
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            enabled = false,
+            label = { Text(label, color = PrimaryBlue) },
+            placeholder = { Text(placeholder, color = PrimaryBlue.copy(alpha = 0.55f)) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledContainerColor = Color(0xFFF2F4F7),
+                disabledTextColor = Color.Black,
+                disabledBorderColor = Color(0xFFD8DEE6),
+                disabledLabelColor = PrimaryBlue,
+                disabledPlaceholderColor = PrimaryBlue.copy(alpha = 0.65f)
+            )
+        )
+    }
+}
+
+@Composable
+private fun ConfirmSummaryCard(
+    clinicLabel: String,
+    service: String,
+    doctorName: String,
+    date: String,
+    time: String,
+    duration: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.35f))
+    ) {
+        Column {
+            ConfirmSummaryRow(label = "Клиника", value = clinicLabel)
+            HorizontalDivider(color = Color(0xFFE8ECF0))
+            ConfirmSummaryRow(label = "Қызмет", value = service)
+            HorizontalDivider(color = Color(0xFFE8ECF0))
+            ConfirmSummaryRow(label = "Дәрігер", value = doctorName)
+            HorizontalDivider(color = Color(0xFFE8ECF0))
+            ConfirmSummaryRow(label = "Күні", value = date)
+            HorizontalDivider(color = Color(0xFFE8ECF0))
+            ConfirmSummaryRow(label = "Уақыты", value = time)
+            HorizontalDivider(color = Color(0xFFE8ECF0))
+            ConfirmSummaryRow(label = "Ұзақтығы", value = duration)
+        }
+    }
+}
+
+@Composable
+private fun ConfirmSummaryRow(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF7A8490)
+        )
+        Text(
+            text = value.ifBlank { "—" },
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            textAlign = TextAlign.End,
+            modifier = Modifier.padding(start = 12.dp)
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BookingScreenContent(
     padding: PaddingValues,
     state: BookingUiState,
     viewModel: BookingViewModel,
-    scrollModifier: Modifier = Modifier
+    scrollState: ScrollState
 ) {
-    val selectedDoctor = state.doctors.firstOrNull { doctor -> doctor.uid == state.doctorId }
     val hasClinicId = state.clinicId.isNotBlank()
     val clinicDataUnavailable = hasClinicId && state.clinicName.isBlank() && !state.isLoading
     val userErrorMessage = sanitizeBookingErrorForUi(state.error)
+    var serviceMenuExpanded by remember { mutableStateOf(false) }
+
+    val canGoNext = hasClinicId && when (state.currentStep) {
+        BookingWizardStep.Service -> state.direction.isNotBlank()
+        BookingWizardStep.Doctor -> state.doctorId.isNotBlank()
+        BookingWizardStep.DateTime -> {
+            val slotOk = state.availableSlots.any { it.time == state.selectedTime && it.isEnabled }
+            state.selectedDate.isNotBlank() && state.selectedTime.isNotBlank() && slotOk
+        }
+        BookingWizardStep.Confirm -> false
+    }
 
     if (state.showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -168,7 +483,7 @@ private fun BookingScreenContent(
                         viewModel.onShowDatePicker(false)
                     }
                 ) {
-                    Text("OK", color = PrimaryBlue)
+                    Text("Таңдау", color = PrimaryBlue)
                 }
             },
             dismissButton = {
@@ -217,264 +532,233 @@ private fun BookingScreenContent(
         modifier = Modifier
             .padding(padding)
             .fillMaxSize()
-            .then(scrollModifier)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = if (hasClinicId) {
-                "Клиника: ${state.clinicName.ifBlank { "—" }}"
-            } else {
-                "Клиника: таңдалмаған"
-            },
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = PrimaryBlue
-        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            BookingWizardProgress(current = state.currentStep)
 
-        if (clinicDataUnavailable) {
-            Text(
-                text = "Клиника деректері жүктелмеді",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
-
-        ClickableTextField(
-            value = state.selectedDate,
-            enabled = hasClinicId,
-            label = "Қабылдау күні",
-            placeholder = "Күнді таңдаңыз",
-            onClick = { viewModel.onShowDatePicker(true) }
-        )
-
-        ClickableTextField(
-            value = state.selectedTime,
-            label = "Қабылдау уақыты",
-            placeholder = if (state.selectedDate.isBlank()) {
-                "Алдымен қабылдау күнін таңдаңыз"
-            } else if (state.doctorId.isBlank()) {
-                "Алдымен дәрігерді таңдаңыз"
-            } else {
-                "Қабылдау уақытын таңдаңыз"
-            },
-            enabled = hasClinicId && state.selectedDate.isNotBlank() && state.doctorId.isNotBlank() && state.availableSlots.isNotEmpty(),
-            onClick = { viewModel.onShowTimePicker(true) }
-        )
-
-        when {
-            state.selectedDate.isBlank() -> {
+            if (clinicDataUnavailable) {
                 Text(
-                    text = "Алдымен қабылдау күнін таңдаңыз",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    text = "Клиника деректері жүктелмеді",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
 
-            state.doctorId.isBlank() -> {
-                Text(
-                    text = "Алдымен дәрігерді таңдаңыз",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-            }
-
-            state.availableSlots.isEmpty() -> {
-                Text(
-                    text = "Бұл күнге бос уақыт жоқ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-            }
-        }
-
-        if (state.selectedDate.isNotBlank() && state.doctorId.isNotBlank() && state.availableSlots.isNotEmpty()) {
-            Text(
-                text = "Бос уақыттар",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = PrimaryBlue
-            )
-            TimeSelectionGrid(
-                selectedTime = state.selectedTime,
-                slots = state.availableSlots,
-                onTimeSelect = { selected -> viewModel.onTimeSelected(selected) }
-            )
-        }
-
-        if (state.selectedDate.isNotBlank() && state.doctorId.isNotBlank() && state.availableSlots.isEmpty()) {
-            Text(
-                text = "Бұл күнге бос уақыт жоқ",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
-            )
-        }
-
-        Column {
-            Text(
-                text = "Маман",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = PrimaryBlue
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-
-            ExposedDropdownMenuBox(
-                expanded = state.isDoctorMenuExpanded,
-                onExpandedChange = { expanded -> viewModel.onDoctorMenuExpandedChange(expanded) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = state.doctorName,
-                    onValueChange = {},
-                    readOnly = true,
-                    placeholder = { Text("Дәрігерді таңдаңыз") },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = state.isDoctorMenuExpanded)
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryBlue,
-                        unfocusedBorderColor = Color.LightGray
-                    ),
-                    modifier = Modifier
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                        .fillMaxWidth()
-                )
-
-                DropdownMenu(
-                    expanded = state.isDoctorMenuExpanded,
-                    onDismissRequest = { viewModel.onDoctorMenuExpandedChange(false) },
-                    modifier = Modifier.background(Color.White)
-                ) {
-                    state.doctors.forEach { doctor ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(doctor.name)
-                                    if (doctor.specialty.isNotBlank()) {
-                                        Text(
-                                            text = doctor.specialty,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = Color.Gray
-                                        )
-                                    }
-                                    if (doctor.experienceYears > 0) {
-                                        Text(
-                                            text = "Тәжірибе: ${doctor.experienceYears} жыл",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Color.Gray
-                                        )
-                                    }
-                                }
-                            },
-                            onClick = { viewModel.onDoctorSelected(doctor) }
+            when (state.currentStep) {
+                BookingWizardStep.Service -> {
+                    Text(
+                        text = "Қандай қызмет керек?",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = if (hasClinicId) {
+                            "Клиника: ${state.clinicName.ifBlank { "—" }}"
+                        } else {
+                            "Клиника: таңдалмаған"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                    BookingServiceDropdown(
+                        state = state,
+                        expanded = serviceMenuExpanded,
+                        onExpandedChange = { serviceMenuExpanded = it },
+                        onSelectTitle = { title -> viewModel.selectServiceTitle(title) },
+                        enabled = hasClinicId
+                    )
+                    if (state.direction.isNotBlank()) {
+                        Text(
+                            text = "Таңдалған қызметке сай дәрігерлер: ${state.doctors.size}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
                         )
                     }
                 }
+
+                BookingWizardStep.Doctor -> {
+                    Text(
+                        text = "Дәрігерді таңдаңыз",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        color = Color.Black
+                    )
+                    BookingDoctorDropdown(
+                        state = state,
+                        onDoctorSelected = { doctor -> viewModel.onDoctorSelected(doctor) },
+                        onMenuExpandedChange = { expanded ->
+                            viewModel.onDoctorMenuExpandedChange(expanded)
+                        }
+                    )
+                    if (state.doctors.isEmpty()) {
+                        Text(
+                            text = userErrorMessage
+                                ?: "Бұл клиникада лайықты маман табылмады",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                BookingWizardStep.DateTime -> {
+                    Text(
+                        text = "Күн мен уақытты таңдаңыз",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        color = Color.Black
+                    )
+                    SelectionSheetField(
+                        value = state.selectedDate,
+                        label = "Қабылдау күні",
+                        placeholder = "Күнді таңдаңыз",
+                        enabled = hasClinicId,
+                        onClick = { viewModel.onShowDatePicker(true) }
+                    )
+                    SelectionSheetField(
+                        value = state.selectedTime,
+                        label = "Қабылдау уақыты",
+                        placeholder = when {
+                            state.selectedDate.isBlank() -> "Алдымен күнді таңдаңыз"
+                            state.availableSlots.isEmpty() -> "Бұл күнге бос уақыт жоқ"
+                            else -> "Уақытты таңдаңыз"
+                        },
+                        enabled = hasClinicId &&
+                            state.selectedDate.isNotBlank() &&
+                            state.doctorId.isNotBlank() &&
+                            state.availableSlots.isNotEmpty(),
+                        onClick = { viewModel.onShowTimePicker(true) }
+                    )
+                    OutlinedTextField(
+                        value = state.duration,
+                        onValueChange = viewModel::onDurationChange,
+                        label = { Text("Ұзақтығы") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = Color(0xFFD8DEE6),
+                            focusedBorderColor = PrimaryBlue
+                        )
+                    )
+                    when {
+                        state.selectedDate.isBlank() -> {
+                            Text(
+                                text = "Алдымен қабылдау күнін таңдаңыз",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        }
+
+                        state.availableSlots.isEmpty() -> {
+                            Text(
+                                text = "Бұл күнге бос уақыт жоқ",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
+
+                BookingWizardStep.Confirm -> {
+                    Text(
+                        text = "Жазылуды растаңыз",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        color = Color.Black
+                    )
+                    ConfirmSummaryCard(
+                        clinicLabel = state.clinicName.ifBlank { "—" },
+                        service = state.direction.ifBlank { "—" },
+                        doctorName = state.doctorName.ifBlank { "—" },
+                        date = state.selectedDate.ifBlank { "—" },
+                        time = state.selectedTime.ifBlank { "—" },
+                        duration = state.duration.ifBlank { "—" }
+                    )
+                }
             }
 
-            if (state.doctors.isEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Бұл клиникада дәрігер жоқ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
+            userErrorMessage?.let { message ->
+                if (state.currentStep != BookingWizardStep.Doctor || state.doctors.isNotEmpty()) {
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
 
-        ReadOnlyTextField(label = "Қызмет", value = state.direction)
-        ReadOnlyTextField(label = "Ұзақтығы", value = state.duration)
-
-        selectedDoctor?.let { doctor ->
-            DoctorPreviewCard(doctor = doctor)
-        }
-
-        userErrorMessage?.let { message ->
-            Text(
-                text = message,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 14.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (state.isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                color = PrimaryBlue
-            )
-        } else {
-            Button(
-                onClick = { viewModel.confirmBooking() },
+        Surface(
+            tonalElevation = 2.dp,
+            shadowElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                enabled = hasClinicId &&
-                    state.selectedDate.isNotEmpty() &&
-                    state.selectedTime.isNotEmpty() &&
-                    state.doctorId.isNotEmpty(),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                Text("Жазылуды растау", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                when {
+                    state.currentStep == BookingWizardStep.Confirm && state.isLoading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .align(Alignment.CenterHorizontally),
+                            color = PrimaryBlue,
+                            strokeWidth = 3.dp
+                        )
+                    }
+
+                    state.currentStep == BookingWizardStep.Confirm -> {
+                        Button(
+                            onClick = { viewModel.confirmBooking() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            enabled = hasClinicId &&
+                                state.selectedDate.isNotEmpty() &&
+                                state.selectedTime.isNotEmpty() &&
+                                state.doctorId.isNotEmpty(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryBlue,
+                                disabledContainerColor = Color(0xFFE0E4E8),
+                                disabledContentColor = Color.White.copy(alpha = 0.75f)
+                            )
+                        ) {
+                            Text("Жазылуды растау", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    else -> {
+                        Button(
+                            onClick = { viewModel.goToNextStep() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            enabled = canGoNext,
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryBlue,
+                                disabledContainerColor = Color(0xFFE0E4E8),
+                                disabledContentColor = Color.White.copy(alpha = 0.75f)
+                            )
+                        ) {
+                            Text("Келесі", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
     }
-}
-
-@Composable
-fun ClickableTextField(
-    value: String,
-    label: String,
-    placeholder: String,
-    enabled: Boolean = true,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(enabled = enabled) { onClick() }
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            label = { Text(label) },
-            placeholder = { Text(placeholder) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            enabled = false,
-            readOnly = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledContainerColor = Color.White,
-                disabledTextColor = Color.Black,
-                disabledBorderColor = Color.LightGray,
-                disabledLabelColor = PrimaryBlue
-            )
-        )
-    }
-}
-
-@Composable
-fun ReadOnlyTextField(label: String, value: String) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = {},
-        readOnly = true,
-        label = { Text(label) },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedContainerColor = Color.White,
-            focusedContainerColor = Color.White,
-            unfocusedTextColor = Color.Black,
-            unfocusedLabelColor = Color.Gray,
-            unfocusedBorderColor = Color.LightGray
-        )
-    )
 }
 
 @Composable
@@ -521,7 +805,7 @@ fun TimeSelectionGrid(
                     )
                     if (!slot.isEnabled) {
                         Text(
-                            text = "Толы",
+                            text = "Толық",
                             color = textColor,
                             style = MaterialTheme.typography.labelSmall
                         )
@@ -532,69 +816,6 @@ fun TimeSelectionGrid(
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DoctorPreviewCard(doctor: DoctorOption) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFE8F4FA)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (doctor.photoUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = doctor.photoUrl,
-                        contentDescription = "Doctor avatar",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Text(
-                        text = doctor.name.take(1).uppercase(),
-                        color = PrimaryBlue,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(doctor.name, fontWeight = FontWeight.Bold, color = Color.Black)
-                Text(
-                    text = doctor.specialty.ifBlank { "Стоматолог" },
-                    color = Color.Gray,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                if (doctor.experienceYears > 0) {
-                    Text(
-                        text = "Тәжірибе: ${doctor.experienceYears} жыл",
-                        color = Color.Gray,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                if (doctor.aboutDoctor.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = doctor.aboutDoctor,
-                        color = Color.DarkGray,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 3
-                    )
                 }
             }
         }
@@ -616,7 +837,7 @@ private fun sanitizeBookingErrorForUi(rawMessage: String?): String? {
         "clinic("
     )
     val looksTechnical = technicalMarkers.any { marker -> lowered.contains(marker) } ||
-        message.contains('\n')
+            message.contains('\n')
 
     return if (looksTechnical) "Сұранысты орындау мүмкін болмады. Қайта көріңіз" else message
 }

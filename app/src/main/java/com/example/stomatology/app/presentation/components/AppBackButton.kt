@@ -17,14 +17,28 @@ import androidx.compose.ui.unit.dp
 fun AppBackButton(
     onClick: () -> Unit,
     onPrimary: Boolean = false,
+    /** Жеңіл TopAppBar: дөңгелек фонсыз, тек иконка */
+    minimal: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val iconColor = if (onPrimary) Color.White else Color(0xFF111827)
+
+    if (minimal) {
+        IconButton(onClick = onClick, modifier = modifier) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Артқа",
+                tint = iconColor
+            )
+        }
+        return
+    }
+
     val containerColor = if (onPrimary) {
         Color.White.copy(alpha = 0.24f)
     } else {
         Color(0xFFF1F3F5)
     }
-    val iconColor = if (onPrimary) Color.White else Color(0xFF111827)
 
     IconButton(
         onClick = onClick,

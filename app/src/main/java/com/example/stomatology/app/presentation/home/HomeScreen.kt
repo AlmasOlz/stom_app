@@ -3,6 +3,7 @@ package com.example.stomatology.app.presentation.home
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.location.Location
 import android.location.LocationManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -58,20 +59,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.stomatology.app.R
-import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.Clinic
 import com.example.stomatology.app.presentation.profile.UserProfileViewModel
 import com.example.stomatology.app.presentation.theme.BackgroundGray
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 import androidx.annotation.DrawableRes
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -162,7 +155,6 @@ private fun HomeContent(
             ServiceItem("Брекет", ServiceIcon.Drawable(R.drawable.ic_braces)) { onNavigateToClinics("Брекет") }
         )
     }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -201,13 +193,10 @@ private fun HomeContent(
 
         NearbyClinicsSection(
             clinics = uiState.nearbyClinics,
-            onOpenClinic = onOpenClinic,
-            userLocation = uiState.userLat?.let { lat ->
-                uiState.userLon?.let { lon -> LatLng(lat, lon) }
-            }
+            onOpenClinic = onOpenClinic
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = "Қызметтер",
@@ -279,7 +268,7 @@ private fun HomeContent(
 
 @Composable
 private fun QuickRebookHeroCard(
-    quickRebook: Appointment?,
+    quickRebook: com.example.stomatology.app.domain.model.Appointment?,
     onQuickRebook: (String, String) -> Unit
 ) {
     Card(
@@ -301,10 +290,9 @@ private fun QuickRebookHeroCard(
                 Text("Алдыңғы жазба табылмады", color = Color(0xFFEAF2FF), fontSize = 13.sp)
             } else {
                 Text(
-                    text = buildQuickRebookSummary(quickRebook),
+                    "Соңғы жазба: ${quickRebook.doctorName} • ${quickRebook.service}",
                     color = Color(0xFFEAF2FF),
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp
+                    fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 OutlinedButton(
@@ -320,8 +308,7 @@ private fun QuickRebookHeroCard(
 @Composable
 private fun NearbyClinicsSection(
     clinics: List<Clinic>,
-    onOpenClinic: (String, String) -> Unit,
-    userLocation: LatLng?
+    onOpenClinic: (String, String) -> Unit
 ) {
     Text(
         text = "Жақын маңдағы клиникалар",
@@ -339,60 +326,6 @@ private fun NearbyClinicsSection(
             modifier = Modifier.padding(horizontal = 16.dp)
         )
         return
-    }
-
-    val mapClinics = clinics.filter { it.latitude != 0.0 || it.longitude != 0.0 }
-    val context = LocalContext.current
-    val canRenderMap = remember(context) { canRenderEmbeddedMap(context) }
-    if (mapClinics.isNotEmpty() && canRenderMap) {
-        val first = userLocation ?: LatLng(mapClinics.first().latitude, mapClinics.first().longitude)
-        val cameraState = rememberCameraPositionState {
-            position = CameraPosition.fromLatLngZoom(first, if (userLocation != null) 13f else 12f)
-        }
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(170.dp),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraState
-            ) {
-                mapClinics.take(5).forEach { clinic ->
-                    Marker(
-                        state = MarkerState(LatLng(clinic.latitude, clinic.longitude)),
-                        title = clinic.name,
-                        snippet = clinic.address
-                    )
-                }
-                userLocation?.let {
-                    Marker(
-                        state = MarkerState(position = it),
-                        title = "Сіздің орныңыз",
-                        snippet = "Ағымдағы мекенжай"
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-    } else if (mapClinics.isNotEmpty()) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Text(
-                text = "Карта уақытша қолжетімсіз. Тізімнен клиниканы таңдап, картада ашуға болады.",
-                color = Color.Gray,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(12.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(10.dp))
     }
 
     LazyRow(
@@ -431,15 +364,15 @@ private fun Context.fetchCurrentLocation(onSuccess: (LatLng) -> Unit) {
 
     val client = LocationServices.getFusedLocationProviderClient(this)
     client.lastLocation
-        .addOnSuccessListener { location ->
-            if (location != null) {
-                onSuccess(LatLng(location.latitude, location.longitude))
+        .addOnSuccessListener { last: Location? ->
+            if (last != null) {
+                onSuccess(LatLng(last.latitude, last.longitude))
             } else {
                 val cts = CancellationTokenSource()
                 client.getCurrentLocation(
                     if (hasFine) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY,
                     cts.token
-                ).addOnSuccessListener { current ->
+                ).addOnSuccessListener { current: Location? ->
                     if (current != null) {
                         onSuccess(LatLng(current.latitude, current.longitude))
                     } else {
@@ -459,27 +392,11 @@ private fun Context.fetchCurrentLocation(onSuccess: (LatLng) -> Unit) {
 private fun Context.fetchLastKnownLocationFallback(): LatLng? {
     val locationManager = getSystemService(LocationManager::class.java) ?: return null
     val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
-    val location = providers
+    val lastKnown: Location = providers
         .mapNotNull { provider -> runCatching { locationManager.getLastKnownLocation(provider) }.getOrNull() }
         .maxByOrNull { it.time }
         ?: return null
-    return LatLng(location.latitude, location.longitude)
-}
-
-private fun canRenderEmbeddedMap(context: android.content.Context): Boolean {
-    val hasGooglePlayServices = GoogleApiAvailability.getInstance()
-        .isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS
-    if (!hasGooglePlayServices) return false
-
-    val apiKey = runCatching {
-        val appInfo = context.packageManager.getApplicationInfo(
-            context.packageName,
-            android.content.pm.PackageManager.GET_META_DATA
-        )
-        appInfo.metaData?.getString("com.google.android.geo.API_KEY").orEmpty()
-    }.getOrDefault("")
-
-    return apiKey.isNotBlank()
+    return LatLng(lastKnown.latitude, lastKnown.longitude)
 }
 
 @Composable
@@ -509,27 +426,6 @@ private fun HomeAvatar(
             )
         }
     }
-}
-
-private fun buildQuickRebookSummary(a: Appointment): String {
-    val parts = mutableListOf<String>()
-    val clinic = a.clinicName.trim()
-    if (clinic.isNotEmpty()) parts.add(clinic)
-    val doctor = a.doctorName.trim()
-    if (doctor.isNotEmpty()) parts.add(doctor)
-    val service = a.service.trim()
-    if (service.isNotEmpty()) parts.add(service)
-    val whenStr = buildString {
-        val d = a.date.trim()
-        val t = a.time.trim()
-        if (d.isNotEmpty()) append(d)
-        if (t.isNotEmpty()) {
-            if (isNotEmpty()) append(" ")
-            append(t)
-        }
-    }
-    if (whenStr.isNotEmpty()) parts.add(whenStr)
-    return if (parts.isEmpty()) "Соңғы жазба" else parts.joinToString(" • ")
 }
 
 data class ServiceItem(

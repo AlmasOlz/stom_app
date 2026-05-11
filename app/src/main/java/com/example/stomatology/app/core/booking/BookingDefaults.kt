@@ -1,8 +1,21 @@
 package com.example.stomatology.app.core.booking
 
 object BookingDefaults {
-    const val DEFAULT_DURATION = "1 \u0447\u0430\u0441"
+    // Казак тілінде "сағат" дұрыс жазылуы
+    const val DEFAULT_DURATION = "1 \u0441\u0430\u0493\u0430\u0442"
     const val DATE_OPTION_DAYS = 5
+
+    /**
+     * Қызметтер тізімі (басты бетпен сәйкес) — 1-қадамда таңдау үшін.
+     * Сүзгі логикасы [requiredSpecialtyKeywords] мамандық атауларымен жұмыс істейді.
+     */
+    val BOOKING_SERVICE_TITLES: List<String> = listOf(
+        "Тіс жұлу",
+        "Протездеу",
+        "Пломба / Канал",
+        "Имплант",
+        "Брекет"
+    )
 
     val DEFAULT_TIME_SLOTS = listOf(
         "09:00",

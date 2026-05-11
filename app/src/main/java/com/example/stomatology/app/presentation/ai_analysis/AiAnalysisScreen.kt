@@ -33,6 +33,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -94,6 +95,7 @@ fun AiAnalysisScreen(
 
     var selectedFinding by remember { mutableStateOf<Finding?>(null) }
     var selectedDisplayNumber by remember { mutableStateOf<Int?>(null) }
+    var complaintText by remember { mutableStateOf("") }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -166,11 +168,39 @@ fun AiAnalysisScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(20.dp))
-                    Button(
-                        onClick = { galleryLauncher.launch("image/*") },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Рентген суретін таңдау", color = Color.White)
+                        Text(
+                            "AI-талдау: шағым немесе рентген",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        OutlinedTextField(
+                            value = complaintText,
+                            onValueChange = { complaintText = it },
+                            placeholder = { Text("Шағымыңызды жазыңыз: мысалы, тісім ауырды...") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3
+                        )
+                        Button(
+                            onClick = { viewModel.analyzeComplaint(complaintText) },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Шағымды AI талдау", color = Color.White)
+                        }
+                        Button(
+                            onClick = { galleryLauncher.launch("image/*") },
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Рентген суретін таңдау", color = Color.White)
+                        }
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -353,6 +383,37 @@ fun AiAnalysisScreen(
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
+                }
+
+                is AiState.ComplaintSuccess -> {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("AI алдын ала қорытынды", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Шағым: ${state.complaint}", color = Color.DarkGray)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(state.recommendation, color = PrimaryBlue, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "Нақты диагнозды тек стоматолог қояды.",
+                                color = Color.Gray,
+                                fontSize = 12.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { viewModel.resetState() },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                            ) {
+                                Text("Жаңа талдау", color = Color.White)
+                            }
+                        }
+                    }
                 }
 
                 is AiState.Error -> {

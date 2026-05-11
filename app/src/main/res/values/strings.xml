@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">stomatology</string>
+    <string name="app_name">DentAI</string>
 
     <string name="doctor_list_title">Дәрігерді таңдау</string>
     <string name="doctor_list_hero">Тісті ауыртпай және қауіпсіз емдеу</string>

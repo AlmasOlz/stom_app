@@ -82,9 +82,12 @@ fun NotificationSettingsScreen(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Text(
-                        text = "Тіл",
+                        text = stringResource(R.string.settings_language),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -102,10 +105,17 @@ fun NotificationSettingsScreen(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (selectedLanguage == "kk") PrimaryBlue.copy(alpha = 0.12f) else Color.Transparent
+                                containerColor = if (selectedLanguage == "kk") {
+                                    PrimaryBlue.copy(alpha = 0.12f)
+                                } else {
+                                    Color.Transparent
+                                }
                             )
                         ) {
-                            Text(stringResource(R.string.settings_kz), color = if (selectedLanguage == "kk") PrimaryBlue else Color.DarkGray)
+                            Text(
+                                stringResource(R.string.settings_kz),
+                                color = if (selectedLanguage == "kk") PrimaryBlue else Color.DarkGray
+                            )
                         }
 
                         OutlinedButton(
@@ -117,18 +127,26 @@ fun NotificationSettingsScreen(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (selectedLanguage == "ru") PrimaryBlue.copy(alpha = 0.12f) else Color.Transparent
+                                containerColor = if (selectedLanguage == "ru") {
+                                    PrimaryBlue.copy(alpha = 0.12f)
+                                } else {
+                                    Color.Transparent
+                                }
                             )
                         ) {
-                            Text(stringResource(R.string.settings_ru), color = if (selectedLanguage == "ru") PrimaryBlue else Color.DarkGray)
+                            Text(
+                                stringResource(R.string.settings_ru),
+                                color = if (selectedLanguage == "ru") PrimaryBlue else Color.DarkGray
+                            )
                         }
                     }
 
                     Text(
-                        text = if (selectedLanguage == "kk")
+                        text = if (selectedLanguage == "kk") {
                             stringResource(R.string.settings_selected_kz)
-                        else
-                            stringResource(R.string.settings_selected_ru),
+                        } else {
+                            stringResource(R.string.settings_selected_ru)
+                        },
                         fontSize = 13.sp,
                         color = Color.Gray
                     )

@@ -1,48 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Төменгі навигация және әкімші/дәрігер маршруттары (profile/strings.xml-дан бөлек) -->
     <string name="nav_notifications">Хабарламалар</string>
     <string name="nav_dashboard">Бақылау</string>
     <string name="nav_home">Басты бет</string>
     <string name="nav_records">Жазбалар</string>
-    <string name="nav_profile">Профиль</string>
+    <string name="nav_profile">Жеке бет</string>
     <string name="nav_admin">Әкімші</string>
     <string name="nav_appointments">Жазбалар</string>
-
-    <string name="profile_name_fallback">Пайдаланушы</string>
-    <string name="profile_email_missing">Электрондық пошта көрсетілмеген</string>
-    <string name="profile_phone_missing">Телефон көрсетілмеген</string>
-    <string name="profile_edit">Профильді өңдеу</string>
-    <string name="profile_edit_subtitle">Аты-жөн, телефон және фото</string>
-    <string name="profile_notifications">Хабарламалар</string>
-    <string name="profile_notifications_subtitle">Еске салғыштар мен жаңалықтар</string>
-    <string name="profile_settings">Қосымша баптаулар</string>
-    <string name="profile_settings_subtitle">Тіл, қауіпсіздік және шығу</string>
-    <string name="profile_photo">Профиль фотосы</string>
-    <string name="profile_change_photo">Фото өзгерту</string>
-    <string name="profile_personal_info">Жеке ақпарат</string>
-    <string name="profile_email">Электрондық пошта</string>
-    <string name="profile_phone">Телефон</string>
-    <string name="profile_doctor_profile">Дәрігер профилі</string>
-    <string name="profile_specialty">Мамандығы</string>
-    <string name="profile_experience">Тәжірибе</string>
-    <string name="profile_years">жыл</string>
-    <string name="profile_about_doctor">Дәрігер туралы</string>
-    <string name="profile_not_specified">Көрсетілмеген</string>
-
-    <string name="settings_title">Баптаулар</string>
-    <string name="settings_language">Тіл</string>
-    <string name="settings_kz">Қазақша</string>
-    <string name="settings_ru">Русский</string>
-    <string name="settings_selected_kz">Таңдалған тіл: Қазақша</string>
-    <string name="settings_selected_ru">Таңдалған тіл: Русский</string>
-    <string name="settings_signout">Шығу</string>
-
-    <string name="action_save">Сақтау</string>
-    <string name="action_cancel">Бас тарту</string>
-    <string name="profile_first_name">Аты</string>
-    <string name="profile_last_name">Тегі</string>
-    <string name="profile_experience_years">Тәжірибе (жыл)</string>
-    <string name="profile_upload_local_photo">Телефоннан жүктеу (Cloudinary)</string>
-    <string name="profile_photo_by_url_title">Фото сілтемесін енгізу</string>
-    <string name="profile_photo_by_url_hint">Тегін нұсқа үшін фотоның ашық URL-сілтемесін енгізіңіз</string>
-    <string name="profile_photo_read_error">Фотоны оқу мүмкін болмады</string>
 </resources>
