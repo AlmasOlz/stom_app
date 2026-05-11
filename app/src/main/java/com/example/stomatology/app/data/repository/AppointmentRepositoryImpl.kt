@@ -44,6 +44,7 @@ class AppointmentRepositoryImpl @Inject constructor(
     override fun getAppointmentsForPatient(patientId: String): Flow<List<Appointment>> {
         return firestore.collection(FirestoreCollections.APPOINTMENTS)
             .whereEqualTo(FirestoreFields.PATIENT_ID, patientId)
+            .orderBy(FirestoreFields.CREATED_AT, Query.Direction.DESCENDING)
             .snapshots()
             .map { snapshot -> snapshot.documents.map { it.toAppointment() } }
     }

@@ -33,12 +33,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -75,7 +74,6 @@ fun HomeScreen(
     onNavigateToClinics: (String) -> Unit,
     onNavigateToAi: () -> Unit,
     onNavigateToOtherServices: () -> Unit,
-    onOpenMyRecords: () -> Unit,
     onQuickRebook: (String, String) -> Unit,
     onOpenClinic: (String, String) -> Unit,
     homeViewModel: HomeViewModel = hiltViewModel(),
@@ -128,7 +126,6 @@ fun HomeScreen(
         onNavigateToClinics = onNavigateToClinics,
         onNavigateToAi = onNavigateToAi,
         onNavigateToOtherServices = onNavigateToOtherServices,
-        onOpenMyRecords = onOpenMyRecords,
         onQuickRebook = onQuickRebook,
         onOpenClinic = onOpenClinic,
         uiState = homeState
@@ -142,7 +139,6 @@ private fun HomeContent(
     onNavigateToClinics: (String) -> Unit,
     onNavigateToAi: () -> Unit,
     onNavigateToOtherServices: () -> Unit,
-    onOpenMyRecords: () -> Unit,
     onQuickRebook: (String, String) -> Unit,
     onOpenClinic: (String, String) -> Unit,
     uiState: HomeUiState
@@ -190,7 +186,6 @@ private fun HomeContent(
 
         QuickRebookHeroCard(
             quickRebook = uiState.quickRebook,
-            onOpenMyRecords = onOpenMyRecords,
             onQuickRebook = onQuickRebook
         )
 
@@ -274,7 +269,6 @@ private fun HomeContent(
 @Composable
 private fun QuickRebookHeroCard(
     quickRebook: com.example.stomatology.app.domain.model.Appointment?,
-    onOpenMyRecords: () -> Unit,
     onQuickRebook: (String, String) -> Unit
 ) {
     Card(
@@ -295,42 +289,16 @@ private fun QuickRebookHeroCard(
             if (quickRebook == null) {
                 Text("Алдыңғы жазба табылмады", color = Color(0xFFEAF2FF), fontSize = 13.sp)
             } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { onOpenMyRecords() }
-                        .padding(vertical = 4.dp)
-                ) {
-                    Text(
-                        "Соңғы жазба: ${quickRebook.doctorName} • ${quickRebook.service}",
-                        color = Color(0xFFEAF2FF),
-                        fontSize = 13.sp
-                    )
-                    Text(
-                        "Менің жазбаларым →",
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+                Text(
+                    "Соңғы жазба: ${quickRebook.doctorName} • ${quickRebook.service}",
+                    color = Color(0xFFEAF2FF),
+                    fontSize = 13.sp
+                )
                 Spacer(modifier = Modifier.height(10.dp))
-                Button(
-                    onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = PrimaryBlue
-                    )
+                OutlinedButton(
+                    onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) }
                 ) {
-                    Text(
-                        text = "1 батырмамен жазылу",
-                        color = PrimaryBlue,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text("1 батырмамен жазылу")
                 }
             }
         }
