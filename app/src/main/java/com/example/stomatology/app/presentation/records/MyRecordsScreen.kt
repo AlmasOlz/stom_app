@@ -2,6 +2,7 @@ package com.example.stomatology.app.presentation.records
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -411,11 +413,27 @@ private fun AppointmentCard(
             if (isActive) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onReschedule) {
-                        Text("Уақытты өзгерту")
+                    OutlinedButton(
+                        onClick = onReschedule,
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.95f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White,
+                            containerColor = Color.Transparent
+                        )
+                    ) {
+                        Text("Уақытты өзгерту", color = Color.White, fontWeight = FontWeight.SemiBold)
                     }
-                    OutlinedButton(onClick = onCancel) {
-                        Text("Бас тарту")
+                    OutlinedButton(
+                        onClick = onCancel,
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.95f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White,
+                            containerColor = Color.Transparent
+                        )
+                    ) {
+                        Text("Бас тарту", color = Color.White, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
