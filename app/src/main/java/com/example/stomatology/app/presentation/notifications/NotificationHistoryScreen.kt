@@ -46,7 +46,7 @@ import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 data class NotificationItem(
     val title: String,
-    val description: String,
+    val message: String,
     val time: String,
     val type: NotificationType
 )
@@ -60,21 +60,27 @@ fun NotificationHistoryScreen(onBack: () -> Unit) {
     val notifications = listOf(
         NotificationItem(
             title = missedTitle,
-            description = stringResource(R.string.notification_demo_missed_brushing),
+            message = stringResource(R.string.notification_demo_missed_brushing),
             time = "08:30",
             type = NotificationType.MISSED
         ),
         NotificationItem(
             title = missedTitle,
-            description = stringResource(R.string.notification_demo_missed_prosthesis),
+            message = stringResource(R.string.notification_demo_missed_prosthesis),
             time = "08:00",
             type = NotificationType.MISSED
         ),
         NotificationItem(
             title = stringResource(R.string.notification_demo_success_title),
-            description = stringResource(R.string.notification_demo_success_body),
+            message = stringResource(R.string.notification_demo_success_body),
             time = "09:00",
             type = NotificationType.SUCCESS
+        ),
+        NotificationItem(
+            title = stringResource(R.string.notification_demo_info_title),
+            message = stringResource(R.string.notification_demo_info_body),
+            time = "10:15",
+            type = NotificationType.INFO
         )
     )
 
@@ -121,8 +127,27 @@ fun NotificationHistoryScreen(onBack: () -> Unit) {
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
             }
-            items(notifications) { notification ->
-                NotificationCard(notification)
+
+            if (notifications.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Text(
+                            text = "Хабарламалар жоқ",
+                            modifier = Modifier.padding(20.dp),
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            } else {
+                items(notifications) { notification ->
+                    NotificationCard(notification)
+                }
             }
         }
     }
@@ -130,26 +155,10 @@ fun NotificationHistoryScreen(onBack: () -> Unit) {
 
 @Composable
 fun NotificationCard(item: NotificationItem) {
-    val icon: ImageVector
-    val iconColor: Color
-    val backgroundColor: Color
-
-    when (item.type) {
-        NotificationType.MISSED -> {
-            icon = Icons.Default.Warning
-            iconColor = Color(0xFFE53935)
-            backgroundColor = Color(0xFFFFEBEE)
-        }
-        NotificationType.SUCCESS -> {
-            icon = Icons.Default.CheckCircle
-            iconColor = Color(0xFF43A047)
-            backgroundColor = Color(0xFFE8F5E9)
-        }
-        NotificationType.INFO -> {
-            icon = Icons.Default.Info
-            iconColor = PrimaryBlue
-            backgroundColor = Color(0xFFE3F2FD)
-        }
+    val (icon, iconColor, backgroundColor) = when (item.type) {
+        NotificationType.MISSED -> Triple(Icons.Default.Warning, Color(0xFFE53935), Color(0xFFFFEBEE))
+        NotificationType.SUCCESS -> Triple(Icons.Default.CheckCircle, Color(0xFF43A047), Color(0xFFE8F5E9))
+        NotificationType.INFO -> Triple(Icons.Default.Info, PrimaryBlue, Color(0xFFE3F2FD))
     }
 
     Card(
@@ -186,7 +195,7 @@ fun NotificationCard(item: NotificationItem) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = item.description,
+                    text = item.message,
                     fontSize = 14.sp,
                     color = Color.DarkGray,
                     lineHeight = 18.sp

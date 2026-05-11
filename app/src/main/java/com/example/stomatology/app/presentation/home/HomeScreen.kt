@@ -161,6 +161,34 @@ private fun HomeContent(
             ServiceItem("Брекет", ServiceIcon.Drawable(R.drawable.ic_braces)) { onNavigateToClinics("Брекет") }
         )
     }
+    val infoCards = remember(onNavigateToAi, onNavigateToClinics) {
+        listOf(
+            HomeInfoCardItem(
+                title = "Анестезияға аллергияны тексеру",
+                text = "Ем алдында аллергия қаупі болса, дәрігермен кеңесіп, қажет жағдайда тест тапсырыңыз.",
+                actionText = "Толығырақ",
+                onClick = { }
+            ),
+            HomeInfoCardItem(
+                title = "Ем алдында маңызды ақпарат",
+                text = "Аллергияңыз, қабылдайтын дәрілеріңіз және созылмалы ауруларыңыз туралы дәрігерге айтыңыз.",
+                actionText = "Кеңес",
+                onClick = { }
+            ),
+            HomeInfoCardItem(
+                title = "AI тіс талдауы",
+                text = "Сурет жүктеп, тістеріңіздің жағдайы бойынша бастапқы талдау алыңыз.",
+                actionText = "Талдау",
+                onClick = onNavigateToAi
+            ),
+            HomeInfoCardItem(
+                title = "Онлайн жазылу",
+                text = "Клиниканы, дәрігерді және ыңғайлы уақытты таңдап, қабылдауға жазылыңыз.",
+                actionText = "Жазылу",
+                onClick = { onNavigateToClinics("Тіс емдеу") }
+            )
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -207,6 +235,18 @@ private fun HomeContent(
         )
 
         Spacer(modifier = Modifier.height(20.dp))
+
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
+        ) {
+            items(infoCards, key = { it.title }) { item ->
+                HomeInfoCard(item = item)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = "Қызметтер",
@@ -509,9 +549,52 @@ private fun HomeAvatar(
     }
 }
 
+@Composable
+private fun HomeInfoCard(item: HomeInfoCardItem) {
+    Card(
+        modifier = Modifier
+            .width(300.dp)
+            .clickable { item.onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = item.title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Text(
+                text = item.text,
+                fontSize = 13.sp,
+                color = Color(0xFF455A64),
+                lineHeight = 18.sp
+            )
+            Text(
+                text = item.actionText,
+                fontSize = 13.sp,
+                color = PrimaryBlue,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
 data class ServiceItem(
     val title: String,
     val icon: ServiceIcon,
+    val onClick: () -> Unit
+)
+
+private data class HomeInfoCardItem(
+    val title: String,
+    val text: String,
+    val actionText: String,
     val onClick: () -> Unit
 )
 

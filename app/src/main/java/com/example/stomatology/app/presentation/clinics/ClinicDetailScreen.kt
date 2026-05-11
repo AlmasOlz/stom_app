@@ -35,6 +35,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -43,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,6 +76,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -86,8 +90,11 @@ fun ClinicDetailScreen(
     val state by viewModel.state.collectAsState()
     val clinic = state.clinics.find { it.id == clinicId }
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Клиника туралы", fontWeight = FontWeight.Bold) },
@@ -229,13 +236,23 @@ fun ClinicDetailScreen(
                                 icon = Icons.Default.Call,
                                 label = "Қоңырау шалу",
                                 modifier = Modifier.weight(1f),
-                                onClick = {}
+                                onClick = {
+                                    val opened = openDialer(context, clinic.phone)
+                                    if (!opened) {
+                                        scope.launch { snackbarHostState.showSnackbar("Қоңырау шалу мүмкін болмады") }
+                                    }
+                                }
                             )
                             ClinicActionBtn(
                                 icon = Icons.Default.LocationOn,
                                 label = "Картада",
                                 modifier = Modifier.weight(1f),
-                                onClick = { openClinicInMaps(context, clinic) }
+                                onClick = {
+                                    val opened = openClinicInMaps(context, clinic)
+                                    if (!opened) {
+                                        scope.launch { snackbarHostState.showSnackbar("Картаны ашу мүмкін болмады") }
+                                    }
+                                }
                             )
                         }
 
@@ -273,7 +290,14 @@ fun ClinicDetailScreen(
                             }
                         } else if (hasLocation) {
                             Spacer(modifier = Modifier.height(20.dp))
-                            MapUnavailableCard(onOpenMap = { openClinicInMaps(context, clinic) })
+                            MapUnavailableCard(
+                                onOpenMap = {
+                                    val opened = openClinicInMaps(context, clinic)
+                                    if (!opened) {
+                                        scope.launch { snackbarHostState.showSnackbar("Картаны ашу мүмкін болмады") }
+                                    }
+                                }
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -529,12 +553,13 @@ private fun hasClinicLocation(clinic: Clinic): Boolean {
         (clinic.latitude != 0.0 || clinic.longitude != 0.0)
 }
 
-private fun openClinicInMaps(context: Context, clinic: Clinic) {
+private fun openClinicInMaps(context: Context, clinic: Clinic): Boolean {
     val query = if (hasClinicLocation(clinic)) {
         "${clinic.latitude},${clinic.longitude}(${clinic.name})"
     } else {
         clinic.address.ifBlank { clinic.name }
     }
+    if (query.isBlank()) return false
     val geoUri = Uri.parse("geo:0,0?q=${Uri.encode(query)}")
 
     val googleMapsIntent = Intent(Intent.ACTION_VIEW, geoUri).apply {
@@ -543,9 +568,20 @@ private fun openClinicInMaps(context: Context, clinic: Clinic) {
 
     val fallbackIntent = Intent(Intent.ACTION_VIEW, geoUri)
 
-    runCatching {
+    return runCatching {
         context.startActivity(googleMapsIntent)
+        true
     }.onFailure {
-        context.startActivity(fallbackIntent)
-    }
+        runCatching { context.startActivity(fallbackIntent) }.getOrElse { return false }
+    }.getOrDefault(true)
+}
+
+private fun openDialer(context: Context, phone: String): Boolean {
+    val value = phone.trim()
+    if (value.isBlank()) return false
+    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${Uri.encode(value)}"))
+    return runCatching {
+        context.startActivity(intent)
+        true
+    }.getOrDefault(false)
 }

@@ -26,6 +26,10 @@
     <string name="settings_title">Баптаулар</string>
     <string name="settings_interface_language">Интерфейс тілі: қазақша</string>
     <string name="settings_signout">Шығу</string>
+    <string name="settings_kz">Қазақша</string>
+    <string name="settings_ru">Орысша</string>
+    <string name="settings_selected_kz">Қазіргі тіл: қазақша</string>
+    <string name="settings_selected_ru">Қазіргі тіл: орысша</string>
 
     <string name="action_save">Сақтау</string>
     <string name="action_cancel">Бас тарту</string>

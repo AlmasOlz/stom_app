@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -97,6 +98,7 @@ fun RegistrationScreen(
                     .fillMaxWidth()
                     .verticalScroll(scrollState)
                     .imePadding()
+                    .navigationBarsPadding()
                     .padding(horizontal = 24.dp)
             ) {
                 Spacer(modifier = Modifier.height(20.dp))
@@ -272,7 +274,7 @@ fun RegistrationScreen(
                 Spacer(modifier = Modifier.height(22.dp))
 
                 Text(
-                    text = "Аккаунт ашу арқылы сервис шарттары мен құпиялылық саясатына келісесіз",
+                    text = "Аккаунт ашу арқылы сервис шарттары мен құпиялық саясатына келісесіз",
                     fontSize = 12.sp,
                     color = LegalTextGray,
                     textAlign = TextAlign.Center,
@@ -315,6 +317,7 @@ fun RegistrationScreen(
                 } else {
                     Button(
                         onClick = { viewModel.signUp() },
+                        enabled = !state.doctorRequestSubmitted,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -326,7 +329,12 @@ fun RegistrationScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                     ) {
                         Text(
-                            if (state.requestedRole == UserRoles.DOCTOR) "Өтінім жіберу" else "Аккаунт ашу",
+                            text = when {
+                                state.requestedRole == UserRoles.DOCTOR && state.doctorRequestSubmitted ->
+                                    "Өтінім жіберілді"
+                                state.requestedRole == UserRoles.DOCTOR -> "Өтінім жіберу"
+                                else -> "Аккаунт ашу"
+                            },
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White

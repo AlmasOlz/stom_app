@@ -8,6 +8,7 @@ data class Clinic(
     val rating: Double = 0.0,
     val reviews: Int = 0,
     val address: String = "",
+    val phone: String = "",
     val services: List<String> = emptyList(),
     val imageUrl: String = "",
     val priceFrom: Int = 0,

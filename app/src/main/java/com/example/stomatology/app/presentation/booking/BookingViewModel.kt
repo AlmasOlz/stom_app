@@ -1,5 +1,6 @@
 package com.example.stomatology.app.presentation.booking
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stomatology.app.core.booking.BookingDefaults
@@ -31,6 +32,29 @@ enum class BookingSubmitState {
     SlotAlreadyBooked,
     ValidationError,
     GeneralError
+}
+
+private fun resolveDoctorAuthUid(
+    docId: String,
+    uidField: String,
+    authUidField: String
+): String {
+    val candidates = linkedSetOf<String>()
+    if (authUidField.isNotBlank()) candidates += authUidField
+    if (uidField.isNotBlank()) candidates += uidField
+    if (docId.isNotBlank()) candidates += docId
+    return candidates.firstOrNull { looksLikeFirebaseUid(it) }.orEmpty()
+}
+
+private fun looksLikeFirebaseUid(value: String): Boolean {
+    val normalized = value.trim()
+    if (normalized.length < 20) return false
+    if (normalized.contains(" ")) return false
+    val lower = normalized.lowercase()
+    if (lower.startsWith("doctor_") || lower.startsWith("doc_") || lower.startsWith("seed_")) {
+        return false
+    }
+    return true
 }
 
 data class BookingUiState(
@@ -65,8 +89,8 @@ class BookingViewModel @Inject constructor(
     private val auth: FirebaseAuth,
     private val appointmentRepository: AppointmentRepository
 ) : ViewModel() {
-
     companion object {
+        private const val TAG = "BookingViewModel"
         private const val ERROR_CLINIC_NOT_SELECTED = "Клиника таңдалмаған"
         private const val ERROR_CLINIC_NOT_LOADED = "Клиника деректері жүктелмеді"
         private const val ERROR_DATE_REQUIRED = "Күнді таңдаңыз"
@@ -182,9 +206,10 @@ class BookingViewModel @Inject constructor(
     }
 
     fun onDoctorSelected(doctor: DoctorOption) {
+        Log.d(TAG, "doctor_selected docId=${doctor.docId} authUid=${doctor.authUid} uid=${doctor.uid}")
         _uiState.update {
             it.copy(
-                doctorId = doctor.uid,
+                doctorId = doctor.authUid.ifBlank { doctor.uid },
                 doctorName = doctor.name,
                 selectedTime = "",
                 selectedSlotCapacity = 1,
@@ -393,12 +418,27 @@ class BookingViewModel @Inject constructor(
             runCatching {
                 firestore.collection(FirestoreCollections.USERS)
                     .whereEqualTo(FirestoreFields.ROLE, UserRoles.DOCTOR)
+                    .whereEqualTo(FirestoreFields.REQUEST_STATUS, "approved")
+                    .whereEqualTo(FirestoreFields.IS_ACTIVE, true)
                     .whereEqualTo(FirestoreFields.CLINIC_ID, clinicId)
                     .get()
                     .await()
             }.onSuccess { snapshot ->
                 allDoctors = snapshot.documents.mapNotNull { doc ->
-                    val uid = doc.getString(FirestoreFields.UID) ?: doc.id
+                    val uidField = doc.getString(FirestoreFields.UID).orEmpty().trim()
+                    val authUidField = doc.getString(FirestoreFields.AUTH_UID).orEmpty().trim()
+                    val resolvedAuthUid = resolveDoctorAuthUid(
+                        docId = doc.id,
+                        uidField = uidField,
+                        authUidField = authUidField
+                    )
+                    if (resolvedAuthUid.isBlank()) {
+                        Log.w(
+                            TAG,
+                            "skip_doctor_without_auth_uid docId=${doc.id} uidField=$uidField authUidField=$authUidField"
+                        )
+                        return@mapNotNull null
+                    }
                     val firstName = doc.getString(FirestoreFields.FIRST_NAME).orEmpty()
                     val lastName = doc.getString(FirestoreFields.LAST_NAME).orEmpty()
                     val displayName = doc.getString(FirestoreFields.DISPLAY_NAME)
@@ -406,7 +446,9 @@ class BookingViewModel @Inject constructor(
                         ?: "$firstName $lastName".trim()
 
                     DoctorOption(
-                        uid = uid,
+                        docId = doc.id,
+                        uid = resolvedAuthUid,
+                        authUid = resolvedAuthUid,
                         firstName = firstName,
                         lastName = lastName,
                         displayName = displayName,
@@ -419,6 +461,7 @@ class BookingViewModel @Inject constructor(
                         aboutDoctor = doc.getString(FirestoreFields.ABOUT_DOCTOR).orEmpty()
                     )
                 }
+                Log.d(TAG, "doctors_loaded clinicId=$clinicId count=${allDoctors.size}")
                 applyDoctorFilter()
             }.onFailure { throwable ->
                 allDoctors = emptyList()
@@ -493,7 +536,7 @@ class BookingViewModel @Inject constructor(
         }
 
         val nextError = when {
-            allDoctors.isEmpty() -> "Бұл клиникада дәрігер тіркелмеген"
+            allDoctors.isEmpty() -> "Бұл клиникада Auth UID байланыстырылған дәрігер жоқ"
             requiredKeywords.isNotEmpty() && filteredDoctors.isEmpty() ->
                 "\"$serviceName\" қызметіне сәйкес дәрігер табылмады"
             else -> null

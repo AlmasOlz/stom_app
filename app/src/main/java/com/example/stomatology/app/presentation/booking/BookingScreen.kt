@@ -247,18 +247,60 @@ private fun BookingScreenContent(
         ClickableTextField(
             value = state.selectedTime,
             label = "Қабылдау уақыты",
-            placeholder = if (state.selectedDate.isEmpty()) {
-                "Алдымен күнді таңдаңыз"
+            placeholder = if (state.selectedDate.isBlank()) {
+                "Алдымен қабылдау күнін таңдаңыз"
+            } else if (state.doctorId.isBlank()) {
+                "Алдымен дәрігерді таңдаңыз"
             } else {
-                "Уақытты таңдаңыз"
+                "Қабылдау уақытын таңдаңыз"
             },
-            enabled = hasClinicId && state.selectedDate.isNotEmpty() && state.availableSlots.isNotEmpty(),
+            enabled = hasClinicId && state.selectedDate.isNotBlank() && state.doctorId.isNotBlank() && state.availableSlots.isNotEmpty(),
             onClick = { viewModel.onShowTimePicker(true) }
         )
 
-        if (state.selectedDate.isNotBlank() && state.availableSlots.isEmpty()) {
+        when {
+            state.selectedDate.isBlank() -> {
+                Text(
+                    text = "Алдымен қабылдау күнін таңдаңыз",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+
+            state.doctorId.isBlank() -> {
+                Text(
+                    text = "Алдымен дәрігерді таңдаңыз",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+
+            state.availableSlots.isEmpty() -> {
+                Text(
+                    text = "Бұл күнге бос уақыт жоқ",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+        }
+
+        if (state.selectedDate.isNotBlank() && state.doctorId.isNotBlank() && state.availableSlots.isNotEmpty()) {
             Text(
-                text = "Бұл күні дәрігер қабылдамайды немесе мереке күні",
+                text = "Бос уақыттар",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBlue
+            )
+            TimeSelectionGrid(
+                selectedTime = state.selectedTime,
+                slots = state.availableSlots,
+                onTimeSelect = { selected -> viewModel.onTimeSelected(selected) }
+            )
+        }
+
+        if (state.selectedDate.isNotBlank() && state.doctorId.isNotBlank() && state.availableSlots.isEmpty()) {
+            Text(
+                text = "Бұл күнге бос уақыт жоқ",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
@@ -367,9 +409,9 @@ private fun BookingScreenContent(
                     .fillMaxWidth()
                     .height(56.dp),
                 enabled = hasClinicId &&
-                        state.selectedDate.isNotEmpty() &&
-                        state.selectedTime.isNotEmpty() &&
-                        state.doctorName.isNotEmpty(),
+                    state.selectedDate.isNotEmpty() &&
+                    state.selectedTime.isNotEmpty() &&
+                    state.doctorId.isNotEmpty(),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
             ) {

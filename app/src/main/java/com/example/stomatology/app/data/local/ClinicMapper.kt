@@ -9,6 +9,7 @@ fun ClinicEntity.toDomain(): Clinic {
         rating = rating,
         reviews = reviews,
         address = address,
+        phone = "",
         services = if (services.isBlank()) emptyList() else services.split("|"),
         imageUrl = imageUrl,
         priceFrom = priceFrom,

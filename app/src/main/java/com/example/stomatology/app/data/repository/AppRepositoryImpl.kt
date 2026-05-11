@@ -21,9 +21,9 @@ import com.google.firebase.firestore.snapshots
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -185,6 +185,7 @@ class AppRepositoryImpl @Inject constructor(
             rating = getDouble(FirestoreFields.RATING) ?: 0.0,
             reviews = getLong(FirestoreFields.REVIEWS)?.toInt() ?: 0,
             address = getString(FirestoreFields.ADDRESS).orEmpty(),
+            phone = getString(FirestoreFields.PHONE).orEmpty(),
             services = services,
             imageUrl = getString(FirestoreFields.IMAGE_URL).orEmpty(),
             priceFrom = priceFrom,
@@ -241,28 +242,22 @@ private fun parsePriceList(raw: Any?): List<ServicePrice> {
 }
 
 private fun mapAiApiError(error: Throwable): String {
-    val raw = error.message.orEmpty()
-    val lower = raw.lowercase()
-
+    val lower = error.message.orEmpty().lowercase()
     return when {
         lower.contains("failed to connect") ||
             lower.contains("connection refused") ||
             lower.contains("unable to resolve host") -> {
-            "AI сервисіне қосылу мүмкін болмады. Серверді іске қосыңыз және BASE_URL мәнін тексеріңіз."
+            "AI сервері қолжетімсіз. Кейінірек қайталап көріңіз."
         }
-
         lower.contains("timeout") -> {
-            "AI сервисінен жауап күту уақыты бітті. Кейінірек қайталап көріңіз."
+            "Сұраныс уақыты аяқталды. Қайталап көріңіз."
         }
-
-        lower.contains("http 500") -> {
-            "AI серверінде қате шықты (500). Модельдер жолын және /analyze endpoint-ін тексеріңіз."
+        lower.contains("network") ||
+            lower.contains("host") ||
+            lower.contains("internet") ||
+            lower.contains("socket") -> {
+            "Интернет байланысын тексеріңіз."
         }
-
-        lower.contains("cleartext") -> {
-            "HTTP сұрау бұғатталды. BASE_URL үшін Android желі баптауларын тексеріңіз."
-        }
-
-        else -> raw.ifBlank { "Рентген суретін талдау мүмкін болмады" }
+        else -> "Суретті талдау мүмкін болмады."
     }
 }

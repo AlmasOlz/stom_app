@@ -6,4 +6,6 @@
     <string name="notification_demo_missed_prosthesis">Тіс протезін тазалауды өткізіп алдыңыз. Күніне екі рет жасау ұсынылады.</string>
     <string name="notification_demo_success_title">Құттықтаймыз!</string>
     <string name="notification_demo_success_body">Тамаша! Сіз 7 күн қатарынан ауыз шайғышты қолданып жүрсіз.</string>
+    <string name="notification_demo_info_title">Пайдалы кеңес</string>
+    <string name="notification_demo_info_body">Ем алдында аллергия және қабылдайтын дәрілер туралы дәрігерге айтыңыз.</string>
 </resources>

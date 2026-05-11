@@ -386,13 +386,19 @@ fun AppNavigation() {
 
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
-                    onEditProfile = { navController.navigate("profile_edit") },
+                    onEditProfile = {
+                        runCatching { navController.navigate("profile_edit") { launchSingleTop = true } }
+                    },
                     onNotifications = {
-                        navController.navigate(BottomNavItem.Notifications.route) {
-                            launchSingleTop = true
+                        runCatching {
+                            navController.navigate(BottomNavItem.Notifications.route) {
+                                launchSingleTop = true
+                            }
                         }
                     },
-                    onOpenSettings = { navController.navigate("profile_settings") }
+                    onOpenSettings = {
+                        runCatching { navController.navigate("profile_settings") { launchSingleTop = true } }
+                    }
                 )
             }
 
@@ -455,9 +461,19 @@ fun AppNavigation() {
 
             composable(DoctorRoutes.Profile) {
                 ProfileScreen(
-                    onEditProfile = { navController.navigate("profile_edit") },
-                    onNotifications = {},
-                    onOpenSettings = { navController.navigate("profile_settings") }
+                    onEditProfile = {
+                        runCatching { navController.navigate("profile_edit") { launchSingleTop = true } }
+                    },
+                    onNotifications = {
+                        runCatching {
+                            navController.navigate(BottomNavItem.Notifications.route) {
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onOpenSettings = {
+                        runCatching { navController.navigate("profile_settings") { launchSingleTop = true } }
+                    }
                 )
             }
 
@@ -467,9 +483,19 @@ fun AppNavigation() {
 
             composable(AdminRoutes.Profile) {
                 ProfileScreen(
-                    onEditProfile = { navController.navigate("profile_edit") },
-                    onNotifications = {},
-                    onOpenSettings = { navController.navigate("profile_settings") }
+                    onEditProfile = {
+                        runCatching { navController.navigate("profile_edit") { launchSingleTop = true } }
+                    },
+                    onNotifications = {
+                        runCatching {
+                            navController.navigate(BottomNavItem.Notifications.route) {
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onOpenSettings = {
+                        runCatching { navController.navigate("profile_settings") { launchSingleTop = true } }
+                    }
                 )
             }
         }

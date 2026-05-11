@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -121,7 +122,10 @@ fun AiAnalysisScreen(
                     Text(
                         "Стоматологиялық карта",
                         color = Color.White,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 8.dp)
                     )
                 },
                 navigationIcon = { AppBackButton(onClick = onBack, onPrimary = true) },
@@ -139,10 +143,35 @@ fun AiAnalysisScreen(
         ) {
             when (val state = uiState) {
                 is AiState.Idle -> {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Рентген немесе тіс суретін жүктеңіз. AI бастапқы талдау жасайды.",
+                                color = Color.Black,
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "AI нәтижесі соңғы диагноз емес. Нақты диагнозды дәрігер қояды.",
+                                color = Color(0xFF546E7A),
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
@@ -173,6 +202,7 @@ fun AiAnalysisScreen(
                             Text("Рентген суретін таңдау", color = Color.White)
                         }
                     }
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
 
                 is AiState.Loading -> {
@@ -387,13 +417,37 @@ fun AiAnalysisScreen(
                 }
 
                 is AiState.Error -> {
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(text = "Қате: ${state.message}", color = Color.Red)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = { galleryLauncher.launch("image/*") }) {
-                        Text("Қайта көру")
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFFCDD2))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Талдау кезінде қате шықты",
+                                color = Color(0xFFC62828),
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = state.message,
+                                color = Color(0xFF37474F),
+                                fontSize = 13.sp
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Button(
+                                onClick = { galleryLauncher.launch("image/*") },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                            ) {
+                                Text("Қайта көру")
+                            }
+                        }
                     }
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }

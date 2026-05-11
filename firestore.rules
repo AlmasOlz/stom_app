@@ -35,6 +35,14 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function isNonEmptyString(value) {
+      return value is string && value.size() > 0;
+    }
+
+    function isString(value) {
+      return value is string;
+    }
+
     function appointmentExists(appointmentId) {
       return exists(appointmentDocPath(appointmentId));
     }
@@ -133,10 +141,10 @@ service cloud.firestore {
 
     function validSlotCreate() {
       return slotSchemaKeysOnly(request.resource.data)
-        && request.resource.data.doctorId is string
-        && request.resource.data.clinicId is string
-        && request.resource.data.date is string
-        && request.resource.data.time is string
+        && isString(request.resource.data.doctorId)
+        && isNonEmptyString(request.resource.data.clinicId)
+        && isNonEmptyString(request.resource.data.date)
+        && isNonEmptyString(request.resource.data.time)
         && request.resource.data.capacity is int
         && request.resource.data.capacity >= 1
         && request.resource.data.bookedCount is int
@@ -166,6 +174,191 @@ service cloud.firestore {
         && request.resource.data.appointmentIds is list
         && request.resource.data.appointmentIds.size() == request.resource.data.bookedCount
         && request.resource.data.updatedAt is int;
+    }
+
+    function slotAppointmentIdAt(data, index) {
+      return data.appointmentIds[index];
+    }
+
+    function appointmentAfterMatchesSlot(appointmentId, uid, doctorId, clinicId, date, time) {
+      return existsAfter(appointmentDocPath(appointmentId))
+        && getAfter(appointmentDocPath(appointmentId)).data.patientId == uid
+        && getAfter(appointmentDocPath(appointmentId)).data.doctorId == doctorId
+        && getAfter(appointmentDocPath(appointmentId)).data.clinicId == clinicId
+        && getAfter(appointmentDocPath(appointmentId)).data.date == date
+        && getAfter(appointmentDocPath(appointmentId)).data.time == time;
+    }
+
+    function patientCanCreateSlot() {
+      return isPatient()
+        && request.resource.data.appointmentIds.size() == 1
+        && appointmentAfterMatchesSlot(
+          slotAppointmentIdAt(request.resource.data, 0),
+          request.auth.uid,
+          request.resource.data.doctorId,
+          request.resource.data.clinicId,
+          request.resource.data.date,
+          request.resource.data.time
+        );
+    }
+
+    function patientCanUpdateSlot() {
+      return isPatient()
+        && resource.data.appointmentIds.size() <= 1
+        && request.resource.data.appointmentIds.size() <= 1
+        && (
+          (
+            resource.data.appointmentIds.size() == 0
+            && 
+            request.resource.data.appointmentIds.size() == 1
+            && appointmentAfterMatchesSlot(
+              slotAppointmentIdAt(request.resource.data, 0),
+              request.auth.uid,
+              resource.data.doctorId,
+              resource.data.clinicId,
+              resource.data.date,
+              request.resource.data.time
+            )
+          )
+          ||
+          (
+            request.resource.data.appointmentIds.size() == 0
+            && resource.data.appointmentIds.size() == 1
+            && appointmentExists(slotAppointmentIdAt(resource.data, 0))
+            && appointmentData(slotAppointmentIdAt(resource.data, 0)).patientId == request.auth.uid
+          )
+        );
+    }
+
+    function doctorCanWriteOwnSlot() {
+      return isDoctor() && request.resource.data.doctorId == request.auth.uid;
+    }
+
+    function appointmentCreateFieldsValid() {
+      return request.resource.data.keys().hasAll([
+        "id",
+        "patientId",
+        "patientName",
+        "patientPhone",
+        "clinicId",
+        "clinicName",
+        "doctorId",
+        "doctorName",
+        "service",
+        "date",
+        "time",
+        "duration",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ])
+      && request.resource.data.keys().hasOnly([
+        "id",
+        "patientId",
+        "patientName",
+        "patientPhone",
+        "clinicId",
+        "clinicName",
+        "doctorId",
+        "doctorName",
+        "service",
+        "date",
+        "time",
+        "duration",
+        "status",
+        "createdAt",
+        "updatedAt",
+        "statusChangedBy",
+        "cancelledBy",
+        "cancelReason",
+        "cancelledAt",
+        "completedAt",
+        "rescheduledFromId",
+        "previousDate",
+        "previousTime"
+      ])
+      && request.resource.data.patientId == request.auth.uid
+      && isNonEmptyString(request.resource.data.clinicId)
+      && isNonEmptyString(request.resource.data.clinicName)
+      && isString(request.resource.data.doctorId)
+      && isNonEmptyString(request.resource.data.doctorName)
+      && isNonEmptyString(request.resource.data.service)
+      && isNonEmptyString(request.resource.data.date)
+      && isNonEmptyString(request.resource.data.time)
+      && request.resource.data.status == "PENDING"
+      && request.resource.data.createdAt is number
+      && request.resource.data.updatedAt is number;
+    }
+
+    function coreAppointmentFieldsUnchanged() {
+      return request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.patientName == resource.data.patientName
+        && request.resource.data.patientPhone == resource.data.patientPhone
+        && request.resource.data.clinicId == resource.data.clinicId
+        && request.resource.data.clinicName == resource.data.clinicName
+        && request.resource.data.doctorName == resource.data.doctorName
+        && request.resource.data.service == resource.data.service
+        && request.resource.data.date == resource.data.date
+        && request.resource.data.time == resource.data.time
+        && request.resource.data.duration == resource.data.duration
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function doctorCanClaimUnassignedAppointment() {
+      return isDoctor()
+        && resource.data.doctorId == ""
+        && request.resource.data.doctorId == request.auth.uid
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          "doctorId",
+          "status",
+          "statusChangedBy",
+          "updatedAt"
+        ])
+        && resource.data.status == "PENDING"
+        && request.resource.data.status == "CONFIRMED"
+        && request.resource.data.statusChangedBy == request.auth.uid
+        && request.resource.data.updatedAt is number
+        && coreAppointmentFieldsUnchanged();
+    }
+
+    function isTerminalStatus(statusValue) {
+      return statusValue in ["CANCELLED", "COMPLETED"];
+    }
+
+    function canTransitionFromPending(nextStatus) {
+      return nextStatus in ["PENDING", "CONFIRMED", "CANCELLED"];
+    }
+
+    function canTransitionFromConfirmed(nextStatus) {
+      return nextStatus in ["CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW", "RESCHEDULED"];
+    }
+
+    function canTransitionFromRescheduled(nextStatus) {
+      return nextStatus in ["RESCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"];
+    }
+
+    function validStatusTransitionByRole() {
+      let fromStatus = resource.data.status;
+      let toStatus = request.resource.data.status;
+      return isAdmin()
+        || (
+          isDoctor()
+          && doctorOwnsAppointment()
+          && request.resource.data.statusChangedBy == request.auth.uid
+          && (
+            (fromStatus == "PENDING" && canTransitionFromPending(toStatus))
+            || (fromStatus == "CONFIRMED" && canTransitionFromConfirmed(toStatus))
+            || (fromStatus == "RESCHEDULED" && canTransitionFromRescheduled(toStatus))
+            || (isTerminalStatus(fromStatus) && toStatus == fromStatus)
+          )
+        )
+        || (
+          isPatient()
+          && patientOwnsAppointment()
+          && request.resource.data.statusChangedBy == request.auth.uid
+          && toStatus == "CANCELLED"
+          && fromStatus in ["PENDING", "CONFIRMED", "RESCHEDULED"]
+        );
     }
 
     function validStatusHistoryCreate() {
@@ -261,33 +454,44 @@ service cloud.firestore {
 
     match /appointmentSlots/{slotId} {
       allow read: if signedIn();
-      allow create: if (isPatient() || isDoctor() || isAdmin()) && validSlotCreate();
-      allow update: if (isPatient() || isDoctor() || isAdmin()) && validSlotUpdate();
+      allow create: if validSlotCreate()
+        && (
+          isAdmin()
+          || doctorCanWriteOwnSlot()
+          || patientCanCreateSlot()
+        );
+      allow update: if validSlotUpdate()
+        && (
+          isAdmin()
+          || doctorCanWriteOwnSlot()
+          || patientCanUpdateSlot()
+        );
       allow delete: if isAdmin();
     }
 
     match /appointments/{appointmentId} {
       allow read: if isAdmin() || doctorOwnsAppointment() || patientOwnsAppointment();
 
-      allow create: if signedIn()
-        && request.resource.data.patientId == request.auth.uid
-        && request.resource.data.status == "PENDING";
+      allow create: if signedIn() && appointmentCreateFieldsValid();
 
       allow update: if isAdmin()
+        || doctorCanClaimUnassignedAppointment()
         || (
           isDoctor()
           && doctorOwnsAppointment()
           && doctorEditableAppointmentFieldsOnly()
           && sameIdentityFields()
-          && request.resource.data.status in ["CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW", "RESCHEDULED"]
+          && request.resource.data.status in ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW", "RESCHEDULED"]
+          && validStatusTransitionByRole()
         )
         || (
           isPatient()
           && patientOwnsAppointment()
           && patientEditableAppointmentFieldsOnly()
-          && request.resource.data.status in ["CANCELLED", "RESCHEDULED"]
+          && request.resource.data.status in ["CANCELLED"]
           && request.resource.data.statusChangedBy == request.auth.uid
           && sameIdentityFields()
+          && validStatusTransitionByRole()
         );
 
       allow delete: if isAdmin();
