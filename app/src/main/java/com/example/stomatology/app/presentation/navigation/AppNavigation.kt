@@ -89,7 +89,6 @@ private data class NavBarTab(
 private fun StyledBottomNavigationBar(
     currentRoute: String?,
     tabs: List<NavBarTab>,
-    alwaysShowLabels: Boolean,
     onNavigateTo: (String) -> Unit
 ) {
     val shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
@@ -120,13 +119,7 @@ private fun StyledBottomNavigationBar(
                             contentDescription = label
                         )
                     },
-                    label = {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1
-                        )
-                    },
+                    label = { },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = PrimaryBlue,
                         selectedTextColor = PrimaryBlue,
@@ -134,7 +127,7 @@ private fun StyledBottomNavigationBar(
                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                         unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
                     ),
-                    alwaysShowLabel = alwaysShowLabels
+                    alwaysShowLabel = false
                 )
             }
         }
@@ -518,7 +511,6 @@ fun BottomNavigationBar(
     StyledBottomNavigationBar(
         currentRoute = currentRoute,
         tabs = tabs,
-        alwaysShowLabels = false,
         onNavigateTo = { route ->
             navController.navigate(route) {
                 popUpTo(navController.graph.startDestinationId)
@@ -542,7 +534,6 @@ fun DoctorBottomNavigationBar(
     StyledBottomNavigationBar(
         currentRoute = currentRoute,
         tabs = tabs,
-        alwaysShowLabels = true,
         onNavigateTo = { route ->
             navController.navigate(route) {
                 popUpTo(navController.graph.startDestinationId)
@@ -565,7 +556,6 @@ fun AdminBottomNavigationBar(
     StyledBottomNavigationBar(
         currentRoute = currentRoute,
         tabs = tabs,
-        alwaysShowLabels = true,
         onNavigateTo = { route ->
             navController.navigate(route) {
                 popUpTo(navController.graph.startDestinationId)

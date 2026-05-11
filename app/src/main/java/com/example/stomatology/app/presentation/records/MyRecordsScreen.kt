@@ -58,6 +58,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.stomatology.app.R
 import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.AppointmentStatus
+import com.example.stomatology.app.domain.model.isRecordsPastTab
+import com.example.stomatology.app.domain.model.isRecordsUpcomingTab
 import com.example.stomatology.app.domain.model.AvailableSlot
 import com.example.stomatology.app.domain.model.toUiText
 import com.example.stomatology.app.presentation.booking.convertMillisToDate
@@ -87,16 +89,8 @@ fun MyRecordsScreen(
     var showRescheduleDatePicker by remember { mutableStateOf(false) }
 
     val visibleAppointments = when (selectedTabIndex) {
-        1 -> state.appointments.filter {
-            it.status == AppointmentStatus.PENDING ||
-                it.status == AppointmentStatus.CONFIRMED ||
-                it.status == AppointmentStatus.RESCHEDULED
-        }
-        2 -> state.appointments.filter {
-            it.status == AppointmentStatus.COMPLETED ||
-                it.status == AppointmentStatus.CANCELLED ||
-                it.status == AppointmentStatus.NO_SHOW
-        }
+        1 -> state.appointments.filter { it.isRecordsUpcomingTab() }
+        2 -> state.appointments.filter { it.isRecordsPastTab() }
         else -> state.appointments
     }
 

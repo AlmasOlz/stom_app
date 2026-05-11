@@ -3,9 +3,12 @@ package com.example.stomatology.app.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stomatology.app.core.util.Resource
+import com.example.stomatology.app.core.firebase.currentUserIdFlow
 import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.example.stomatology.app.domain.model.Clinic
+import com.example.stomatology.app.domain.model.scheduleDateTime
+import com.example.stomatology.app.domain.model.scheduleInstantMillis
 import com.example.stomatology.app.domain.repository.AppRepository
 import com.example.stomatology.app.domain.repository.AppointmentRepository
 import com.google.firebase.auth.FirebaseAuth
@@ -16,11 +19,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 enum class HomeSortOption {
@@ -131,17 +131,30 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun observePatientAppointments() {
-        val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
-            appointmentRepository.getAppointmentsForPatient(uid).collectLatest { appointments ->
-                val recent = appointments
-                    .sortedByDescending { appointmentTimelineMillis(it) }
-                    .take(5)
-                _uiState.update {
-                    it.copy(
-                        recentAppointments = recent,
-                        quickRebook = selectQuickRebookAppointment(appointments)
-                    )
+            auth.currentUserIdFlow().collectLatest { uid ->
+                if (uid.isNullOrBlank()) {
+                    _uiState.update {
+                        it.copy(recentAppointments = emptyList(), quickRebook = null)
+                    }
+                    return@collectLatest
+                }
+                try {
+                    appointmentRepository.getAppointmentsForPatient(uid).collectLatest { appointments ->
+                        val recent = appointments
+                            .sortedByDescending { it.scheduleInstantMillis() }
+                            .take(5)
+                        _uiState.update {
+                            it.copy(
+                                recentAppointments = recent,
+                                quickRebook = selectQuickRebookAppointment(appointments)
+                            )
+                        }
+                    }
+                } catch (_: Exception) {
+                    _uiState.update {
+                        it.copy(recentAppointments = emptyList(), quickRebook = null)
+                    }
                 }
             }
         }
@@ -211,48 +224,32 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Соңғы қайта жазылу үшін: бас тартылмаған жазбалардан қабылдау күн/уақыты ең соңғысы;
-     * егер барлығы бас тартылған болса — кез келген статустағы соңғы слот.
+     * Басты бет: ең жақын **келесі** қабылдау (PENDING/CONFIRMED/RESCHEDULED).
+     * Келешек жоқ болса — соңғы өткен белсенді жазба; күн оқылмаса — уақыт белгісі бойынша соңғы.
      */
     private fun selectQuickRebookAppointment(appointments: List<Appointment>): Appointment? {
         if (appointments.isEmpty()) return null
-        val active = appointments.filter { it.status != AppointmentStatus.CANCELLED }
-        val pool = active.ifEmpty { appointments }
-        return pool.maxWithOrNull(compareBy(::appointmentTimelineMillis))
-    }
-
-    private fun appointmentTimelineMillis(a: Appointment): Long {
-        val fromSlot = parseAppointmentDateTime(a)?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
-        return fromSlot ?: maxOf(a.updatedAt, a.createdAt)
-    }
-
-    private fun parseAppointmentDateTime(a: Appointment): LocalDateTime? {
-        val date = parseAppointmentDate(a.date) ?: return null
-        val time = parseAppointmentTime(a.time) ?: LocalTime.MIDNIGHT
-        return LocalDateTime.of(date, time)
-    }
-
-    private fun parseAppointmentDate(raw: String): LocalDate? {
-        val value = raw.trim()
-        if (value.isBlank()) return null
-        val formatters = listOf(
-            DateTimeFormatter.ISO_LOCAL_DATE,
-            DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        val now = LocalDateTime.now(ZoneId.systemDefault())
+        val rebookableStatuses = setOf(
+            AppointmentStatus.PENDING,
+            AppointmentStatus.CONFIRMED,
+            AppointmentStatus.RESCHEDULED
         )
-        return formatters.firstNotNullOfOrNull { fmt ->
-            runCatching { LocalDate.parse(value, fmt) }.getOrNull()
-        }
-    }
+        val primary = appointments.filter { it.status in rebookableStatuses }
+        val pool = primary.ifEmpty {
+            appointments.filter { it.status != AppointmentStatus.CANCELLED }
+        }.ifEmpty { appointments }
 
-    private fun parseAppointmentTime(raw: String): LocalTime? {
-        val value = raw.trim()
-        if (value.isBlank()) return null
-        val patterns = listOf("HH:mm", "H:mm")
-        return patterns.firstNotNullOfOrNull { pattern ->
-            runCatching {
-                LocalTime.parse(value, DateTimeFormatter.ofPattern(pattern))
-            }.getOrNull()
+        val dated = pool.mapNotNull { a -> a.scheduleDateTime()?.let { dt -> a to dt } }
+        if (dated.isEmpty()) {
+            return pool.maxWithOrNull(compareBy { it.scheduleInstantMillis() })
         }
+        val upcoming = dated.filter { (_, dt) -> !dt.isBefore(now) }
+        if (upcoming.isNotEmpty()) {
+            return upcoming.minByOrNull { it.second }!!.first
+        }
+        val past = dated.filter { (_, dt) -> dt.isBefore(now) }
+        return past.maxByOrNull { it.second }?.first ?: pool.firstOrNull()
     }
 
     private fun distanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {

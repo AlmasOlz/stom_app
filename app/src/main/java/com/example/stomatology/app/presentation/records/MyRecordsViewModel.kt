@@ -2,8 +2,12 @@ package com.example.stomatology.app.presentation.records
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.stomatology.app.core.firebase.currentUserIdFlow
 import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.AppointmentStatus
+import com.example.stomatology.app.domain.model.isRecordsPastTab
+import com.example.stomatology.app.domain.model.isRecordsUpcomingTab
+import com.example.stomatology.app.domain.model.scheduleInstantMillis
 import com.example.stomatology.app.domain.model.AvailableSlot
 import com.example.stomatology.app.domain.repository.AppointmentRepository
 import com.example.stomatology.app.domain.repository.AppointmentValidationException
@@ -48,23 +52,49 @@ class MyRecordsViewModel @Inject constructor(
         get() = auth.currentUser?.uid
 
     init {
-        observeAppointments()
+        viewModelScope.launch {
+            auth.currentUserIdFlow().collectLatest { uid ->
+                if (uid.isNullOrBlank()) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            appointments = emptyList(),
+                            error = null,
+                            actionState = MyRecordActionState.Idle
+                        )
+                    }
+                    return@collectLatest
+                }
+                _uiState.update { it.copy(isLoading = true, error = null) }
+                try {
+                    appointmentRepository.getAppointmentsForPatient(uid).collectLatest { appointments ->
+                        _uiState.update {
+                            it.copy(
+                                appointments = appointments.sortedByDescending { it.scheduleInstantMillis() },
+                                isLoading = false,
+                                error = null
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            appointments = emptyList(),
+                            error = e.message ?: "Жазбаларды жүктеу мүмкін болмады"
+                        )
+                    }
+                }
+            }
+        }
     }
 
     fun upcomingAppointments(): List<Appointment> {
-        return _uiState.value.appointments.filter {
-            it.status == AppointmentStatus.PENDING ||
-                it.status == AppointmentStatus.CONFIRMED ||
-                it.status == AppointmentStatus.RESCHEDULED
-        }
+        return _uiState.value.appointments.filter { it.isRecordsUpcomingTab() }
     }
 
     fun pastAppointments(): List<Appointment> {
-        return _uiState.value.appointments.filter {
-            it.status == AppointmentStatus.COMPLETED ||
-                it.status == AppointmentStatus.CANCELLED ||
-                it.status == AppointmentStatus.NO_SHOW
-        }
+        return _uiState.value.appointments.filter { it.isRecordsPastTab() }
     }
 
     fun loadRescheduleSlots(appointment: Appointment, date: String) {
@@ -225,30 +255,4 @@ class MyRecordsViewModel @Inject constructor(
         }
     }
 
-    private fun observeAppointments() {
-        val uid = patientId
-        if (uid == null) {
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    actionState = MyRecordActionState.ValidationError,
-                    error = "Пайдаланушы авторизациядан өтпеген"
-                )
-            }
-            return
-        }
-
-        viewModelScope.launch {
-            appointmentRepository.getAppointmentsForPatient(uid)
-                .collectLatest { appointments ->
-                    _uiState.update {
-                        it.copy(
-                            appointments = appointments.sortedByDescending { item -> item.createdAt },
-                            isLoading = false,
-                            error = null
-                        )
-                    }
-                }
-        }
-    }
 }
