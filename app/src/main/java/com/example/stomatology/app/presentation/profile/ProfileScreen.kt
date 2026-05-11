@@ -35,6 +35,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -48,6 +49,7 @@ import com.example.stomatology.app.R
 import com.example.stomatology.app.core.firebase.UserRoles
 import com.example.stomatology.app.domain.model.UserProfile
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
+import com.example.stomatology.app.presentation.theme.SecondaryBlue
 
 @Composable
 fun ProfileScreen(
@@ -86,10 +88,15 @@ fun ProfileScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(190.dp)
                 .background(
-                    color = PrimaryBlue,
-                    shape = RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp)
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            PrimaryBlue,
+                            SecondaryBlue
+                        )
+                    ),
+                    shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
                 )
         ) {
             Row(
@@ -119,13 +126,13 @@ fun ProfileScreen(
                 displayName = displayName,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .offset(y = 52.dp)
+                    .offset(y = 44.dp)
                     .size(104.dp),
                 onClick = onEditProfile
             )
         }
 
-        Spacer(modifier = Modifier.height(66.dp))
+        Spacer(modifier = Modifier.height(58.dp))
 
         Column(
             modifier = Modifier

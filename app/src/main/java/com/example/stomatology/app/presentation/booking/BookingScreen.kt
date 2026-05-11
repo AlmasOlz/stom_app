@@ -697,14 +697,14 @@ private fun BookingScreenContent(
         }
 
         Surface(
-            tonalElevation = 2.dp,
-            shadowElevation = 6.dp,
-            color = MaterialTheme.colorScheme.surface
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
+            color = Color.Transparent
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 16.dp, vertical = 0.dp)
             ) {
                 when {
                     state.currentStep == BookingWizardStep.Confirm && state.isLoading -> {
