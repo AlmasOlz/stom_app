@@ -15,3 +15,6 @@
 local.properties
 app/google-services.json
 app/src/main/java/com/example/stomatology/app/google-services.json
+
+# Firebase local config
+app/google-services.json
