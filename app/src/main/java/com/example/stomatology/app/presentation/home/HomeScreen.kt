@@ -33,11 +33,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -314,10 +315,22 @@ private fun QuickRebookHeroCard(
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
-                OutlinedButton(
-                    onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) }
+                Button(
+                    onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = PrimaryBlue
+                    )
                 ) {
-                    Text("1 батырмамен жазылу")
+                    Text(
+                        text = "1 батырмамен жазылу",
+                        color = PrimaryBlue,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
