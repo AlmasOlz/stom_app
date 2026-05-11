@@ -74,6 +74,7 @@ fun HomeScreen(
     onNavigateToClinics: (String) -> Unit,
     onNavigateToAi: () -> Unit,
     onNavigateToOtherServices: () -> Unit,
+    onOpenMyRecords: () -> Unit,
     onQuickRebook: (String, String) -> Unit,
     onOpenClinic: (String, String) -> Unit,
     homeViewModel: HomeViewModel = hiltViewModel(),
@@ -186,6 +187,7 @@ private fun HomeContent(
 
         QuickRebookHeroCard(
             quickRebook = uiState.quickRebook,
+            onOpenMyRecords = onOpenMyRecords,
             onQuickRebook = onQuickRebook
         )
 
@@ -269,6 +271,7 @@ private fun HomeContent(
 @Composable
 private fun QuickRebookHeroCard(
     quickRebook: com.example.stomatology.app.domain.model.Appointment?,
+    onOpenMyRecords: () -> Unit,
     onQuickRebook: (String, String) -> Unit
 ) {
     Card(
@@ -289,11 +292,25 @@ private fun QuickRebookHeroCard(
             if (quickRebook == null) {
                 Text("Алдыңғы жазба табылмады", color = Color(0xFFEAF2FF), fontSize = 13.sp)
             } else {
-                Text(
-                    "Соңғы жазба: ${quickRebook.doctorName} • ${quickRebook.service}",
-                    color = Color(0xFFEAF2FF),
-                    fontSize = 13.sp
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onOpenMyRecords() }
+                        .padding(vertical = 4.dp)
+                ) {
+                    Text(
+                        "Соңғы жазба: ${quickRebook.doctorName} • ${quickRebook.service}",
+                        color = Color(0xFFEAF2FF),
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        "Менің жазбаларым →",
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
                 Spacer(modifier = Modifier.height(10.dp))
                 OutlinedButton(
                     onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) }

@@ -314,6 +314,12 @@ fun AppNavigation() {
                     onNavigateToOtherServices = {
                         navController.navigate("other_services")
                     },
+                    onOpenMyRecords = {
+                        navController.navigate(BottomNavItem.Records.route) {
+                            popUpTo(navController.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                    },
                     onQuickRebook = { clinicId, service ->
                         navController.navigate("booking/${Uri.encode(clinicId)}/${Uri.encode(service)}")
                     },
