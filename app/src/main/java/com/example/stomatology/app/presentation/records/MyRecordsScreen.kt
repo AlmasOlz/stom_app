@@ -2,7 +2,6 @@ package com.example.stomatology.app.presentation.records
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.border.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -416,7 +415,6 @@ private fun AppointmentCard(
                     OutlinedButton(
                         onClick = onReschedule,
                         shape = RoundedCornerShape(18.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.95f)),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color.White,
                             containerColor = Color.Transparent
@@ -427,7 +425,6 @@ private fun AppointmentCard(
                     OutlinedButton(
                         onClick = onCancel,
                         shape = RoundedCornerShape(18.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.95f)),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = Color.White,
                             containerColor = Color.Transparent
