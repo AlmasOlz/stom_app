@@ -127,6 +127,7 @@ fun HomeScreen(
         onNavigateToClinics = onNavigateToClinics,
         onNavigateToAi = onNavigateToAi,
         onNavigateToOtherServices = onNavigateToOtherServices,
+        onOpenMyRecords = onOpenMyRecords,
         onQuickRebook = onQuickRebook,
         onOpenClinic = onOpenClinic,
         uiState = homeState
@@ -140,6 +141,7 @@ private fun HomeContent(
     onNavigateToClinics: (String) -> Unit,
     onNavigateToAi: () -> Unit,
     onNavigateToOtherServices: () -> Unit,
+    onOpenMyRecords: () -> Unit,
     onQuickRebook: (String, String) -> Unit,
     onOpenClinic: (String, String) -> Unit,
     uiState: HomeUiState
