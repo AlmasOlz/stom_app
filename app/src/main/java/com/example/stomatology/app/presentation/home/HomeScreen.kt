@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
@@ -36,6 +37,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -161,35 +163,6 @@ private fun HomeContent(
             ServiceItem("Брекет", ServiceIcon.Drawable(R.drawable.ic_braces)) { onNavigateToClinics("Брекет") }
         )
     }
-    val infoCards = remember(onNavigateToAi, onNavigateToClinics) {
-        listOf(
-            HomeInfoCardItem(
-                title = "Анестезияға аллергияны тексеру",
-                text = "Ем алдында аллергия қаупі болса, дәрігермен кеңесіп, қажет жағдайда тест тапсырыңыз.",
-                actionText = "Толығырақ",
-                onClick = { }
-            ),
-            HomeInfoCardItem(
-                title = "Ем алдында маңызды ақпарат",
-                text = "Аллергияңыз, қабылдайтын дәрілеріңіз және созылмалы ауруларыңыз туралы дәрігерге айтыңыз.",
-                actionText = "Кеңес",
-                onClick = { }
-            ),
-            HomeInfoCardItem(
-                title = "AI тіс талдауы",
-                text = "Сурет жүктеп, тістеріңіздің жағдайы бойынша бастапқы талдау алыңыз.",
-                actionText = "Талдау",
-                onClick = onNavigateToAi
-            ),
-            HomeInfoCardItem(
-                title = "Онлайн жазылу",
-                text = "Клиниканы, дәрігерді және ыңғайлы уақытты таңдап, қабылдауға жазылыңыз.",
-                actionText = "Жазылу",
-                onClick = { onNavigateToClinics("Тіс емдеу") }
-            )
-        )
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -233,18 +206,6 @@ private fun HomeContent(
                 uiState.userLon?.let { lon -> LatLng(lat, lon) }
             }
         )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
-        ) {
-            items(infoCards, key = { it.title }) { item ->
-                HomeInfoCard(item = item)
-            }
-        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -339,14 +300,44 @@ private fun QuickRebookHeroCard(
             if (quickRebook == null) {
                 Text("Алдыңғы жазба табылмады", color = Color(0xFFEAF2FF), fontSize = 13.sp)
             } else {
+                val summary = buildString {
+                    append("Соңғы жазба: ")
+                    append(quickRebook.service.ifBlank { "Қызмет" })
+                    if (quickRebook.date.isNotBlank()) {
+                        append(" • ")
+                        append(quickRebook.date)
+                    }
+                    if (quickRebook.time.isNotBlank()) {
+                        append(" ")
+                        append(quickRebook.time)
+                    }
+                    if (quickRebook.doctorName.isNotBlank()) {
+                        append(" • ")
+                        append(quickRebook.doctorName)
+                    }
+                }
                 Text(
-                    "Соңғы жазба: ${quickRebook.doctorName} • ${quickRebook.service}",
+                    text = summary,
                     color = Color(0xFFEAF2FF),
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
                 )
+                if (quickRebook.clinicName.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = quickRebook.clinicName,
+                        color = Color(0xFFEAF2FF).copy(alpha = 0.92f),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
                 Spacer(modifier = Modifier.height(10.dp))
                 OutlinedButton(
-                    onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) }
+                    onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) },
+                    border = BorderStroke(1.dp, Color.White),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.White
+                    )
                 ) {
                     Text("1 батырмамен жазылу")
                 }
@@ -549,52 +540,9 @@ private fun HomeAvatar(
     }
 }
 
-@Composable
-private fun HomeInfoCard(item: HomeInfoCardItem) {
-    Card(
-        modifier = Modifier
-            .width(300.dp)
-            .clickable { item.onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = item.title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            Text(
-                text = item.text,
-                fontSize = 13.sp,
-                color = Color(0xFF455A64),
-                lineHeight = 18.sp
-            )
-            Text(
-                text = item.actionText,
-                fontSize = 13.sp,
-                color = PrimaryBlue,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
 data class ServiceItem(
     val title: String,
     val icon: ServiceIcon,
-    val onClick: () -> Unit
-)
-
-private data class HomeInfoCardItem(
-    val title: String,
-    val text: String,
-    val actionText: String,
     val onClick: () -> Unit
 )
 

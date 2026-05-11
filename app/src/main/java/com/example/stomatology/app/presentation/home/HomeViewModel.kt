@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stomatology.app.core.util.Resource
 import com.example.stomatology.app.domain.model.Appointment
+import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.example.stomatology.app.domain.model.Clinic
 import com.example.stomatology.app.domain.repository.AppRepository
 import com.example.stomatology.app.domain.repository.AppointmentRepository
@@ -15,7 +16,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 enum class HomeSortOption {
@@ -129,11 +134,13 @@ class HomeViewModel @Inject constructor(
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
             appointmentRepository.getAppointmentsForPatient(uid).collectLatest { appointments ->
-                val recent = appointments.sortedByDescending { it.updatedAt }.take(5)
+                val recent = appointments
+                    .sortedByDescending { appointmentTimelineMillis(it) }
+                    .take(5)
                 _uiState.update {
                     it.copy(
                         recentAppointments = recent,
-                        quickRebook = recent.firstOrNull()
+                        quickRebook = selectQuickRebookAppointment(appointments)
                     )
                 }
             }
@@ -201,6 +208,51 @@ class HomeViewModel @Inject constructor(
         val day = now.dayOfWeek.value // 1=Mon ... 7=Sun
         val hour = now.hour
         return day in 1..6 && hour in 9..19
+    }
+
+    /**
+     * Соңғы қайта жазылу үшін: бас тартылмаған жазбалардан қабылдау күн/уақыты ең соңғысы;
+     * егер барлығы бас тартылған болса — кез келген статустағы соңғы слот.
+     */
+    private fun selectQuickRebookAppointment(appointments: List<Appointment>): Appointment? {
+        if (appointments.isEmpty()) return null
+        val active = appointments.filter { it.status != AppointmentStatus.CANCELLED }
+        val pool = active.ifEmpty { appointments }
+        return pool.maxWithOrNull(compareBy(::appointmentTimelineMillis))
+    }
+
+    private fun appointmentTimelineMillis(a: Appointment): Long {
+        val fromSlot = parseAppointmentDateTime(a)?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+        return fromSlot ?: maxOf(a.updatedAt, a.createdAt)
+    }
+
+    private fun parseAppointmentDateTime(a: Appointment): LocalDateTime? {
+        val date = parseAppointmentDate(a.date) ?: return null
+        val time = parseAppointmentTime(a.time) ?: LocalTime.MIDNIGHT
+        return LocalDateTime.of(date, time)
+    }
+
+    private fun parseAppointmentDate(raw: String): LocalDate? {
+        val value = raw.trim()
+        if (value.isBlank()) return null
+        val formatters = listOf(
+            DateTimeFormatter.ISO_LOCAL_DATE,
+            DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        )
+        return formatters.firstNotNullOfOrNull { fmt ->
+            runCatching { LocalDate.parse(value, fmt) }.getOrNull()
+        }
+    }
+
+    private fun parseAppointmentTime(raw: String): LocalTime? {
+        val value = raw.trim()
+        if (value.isBlank()) return null
+        val patterns = listOf("HH:mm", "H:mm")
+        return patterns.firstNotNullOfOrNull { pattern ->
+            runCatching {
+                LocalTime.parse(value, DateTimeFormatter.ofPattern(pattern))
+            }.getOrNull()
+        }
     }
 
     private fun distanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
