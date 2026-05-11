@@ -8,9 +8,11 @@ import com.example.stomatology.app.domain.repository.AppointmentRepository
 import com.example.stomatology.app.domain.repository.AppointmentValidationException
 import com.example.stomatology.app.domain.repository.SlotAlreadyBookedException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestoreException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -91,6 +93,16 @@ class DoctorAppointmentViewModel @Inject constructor(
 
         viewModelScope.launch {
             appointmentRepository.getAppointmentsForDoctor(currentDoctorId)
+                .catch { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            appointments = emptyList(),
+                            isLoading = false,
+                            actionState = AppointmentActionState.GeneralError,
+                            error = mapLoadError(throwable)
+                        )
+                    }
+                }
                 .collectLatest { appointments ->
                     _uiState.update {
                         it.copy(
@@ -100,6 +112,15 @@ class DoctorAppointmentViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    private fun mapLoadError(throwable: Throwable): String {
+        val firestoreError = throwable as? FirebaseFirestoreException
+        return when (firestoreError?.code) {
+            FirebaseFirestoreException.Code.PERMISSION_DENIED -> "Jazbalardy koruge ruqsat joq."
+            FirebaseFirestoreException.Code.UNAVAILABLE -> "Internet bailanysyn tekseriniz."
+            else -> "Jazbalardy jukteu kezinde qate paida boldy."
         }
     }
 

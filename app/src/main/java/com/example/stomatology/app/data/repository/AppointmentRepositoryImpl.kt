@@ -1,5 +1,7 @@
 package com.example.stomatology.app.data.repository
 
+import android.util.Log
+import com.example.stomatology.app.BuildConfig
 import com.example.stomatology.app.core.booking.BookingDefaults
 import com.example.stomatology.app.core.firebase.FirestoreCollections
 import com.example.stomatology.app.core.firebase.FirestoreFields
@@ -24,6 +26,7 @@ import kotlinx.coroutines.tasks.await
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
@@ -34,19 +37,51 @@ class AppointmentRepositoryImpl @Inject constructor(
 ) : AppointmentRepository {
 
     override fun getAppointmentsForDoctor(doctorId: String): Flow<List<Appointment>> {
+        debugLog(
+            "doctor_query_start projectId=${firestore.app.options.projectId} " +
+                "path=${FirestoreCollections.APPOINTMENTS} field=${FirestoreFields.DOCTOR_ID} uid=$doctorId"
+        )
         return firestore.collection(FirestoreCollections.APPOINTMENTS)
             .whereEqualTo(FirestoreFields.DOCTOR_ID, doctorId)
             .orderBy(FirestoreFields.CREATED_AT, Query.Direction.DESCENDING)
             .snapshots()
-            .map { snapshot -> snapshot.documents.map { it.toAppointment() } }
+            .map { snapshot ->
+                debugLog(
+                    "doctor_query_snapshot fromCache=${snapshot.metadata.isFromCache} " +
+                        "size=${snapshot.documents.size}"
+                )
+                snapshot.documents.mapNotNull { doc ->
+                    mapAppointmentSafely(
+                        snapshot = doc,
+                        expectedDoctorId = doctorId,
+                        queryOwnerField = FirestoreFields.DOCTOR_ID
+                    )
+                }
+            }
     }
 
     override fun getAppointmentsForPatient(patientId: String): Flow<List<Appointment>> {
+        debugLog(
+            "patient_query_start projectId=${firestore.app.options.projectId} " +
+                "path=${FirestoreCollections.APPOINTMENTS} field=${FirestoreFields.PATIENT_ID} uid=$patientId"
+        )
         return firestore.collection(FirestoreCollections.APPOINTMENTS)
             .whereEqualTo(FirestoreFields.PATIENT_ID, patientId)
             .orderBy(FirestoreFields.CREATED_AT, Query.Direction.DESCENDING)
             .snapshots()
-            .map { snapshot -> snapshot.documents.map { it.toAppointment() } }
+            .map { snapshot ->
+                debugLog(
+                    "patient_query_snapshot fromCache=${snapshot.metadata.isFromCache} " +
+                        "size=${snapshot.documents.size}"
+                )
+                snapshot.documents.mapNotNull { doc ->
+                    mapAppointmentSafely(
+                        snapshot = doc,
+                        expectedPatientId = patientId,
+                        queryOwnerField = FirestoreFields.PATIENT_ID
+                    )
+                }
+            }
     }
 
     override suspend fun createAppointment(appointment: Appointment, slotCapacity: Int) {
@@ -224,9 +259,10 @@ class AppointmentRepositoryImpl @Inject constructor(
                 val capacity = (doc?.getLong(FirestoreFields.CAPACITY)?.toInt() ?: 1).coerceAtLeast(1)
                 val booked = doc?.getLong(FirestoreFields.BOOKED_COUNT)?.toInt() ?: 0
                 val full = booked >= capacity
+                val past = isPastSlot(date = date, time = time)
                 AvailableSlot(
                     time = time,
-                    isEnabled = !full,
+                    isEnabled = !full && !past,
                     capacity = capacity,
                     bookedCount = booked,
                     isFull = full
@@ -272,9 +308,10 @@ class AppointmentRepositoryImpl @Inject constructor(
                     ?: schedule.capacityPerSlot).coerceAtLeast(1)
                 val booked = doc?.getLong(FirestoreFields.BOOKED_COUNT)?.toInt() ?: 0
                 val full = booked >= capacity
+                val past = isPastSlot(date = date, time = time)
                 AvailableSlot(
                     time = time,
-                    isEnabled = !full,
+                    isEnabled = !full && !past,
                     capacity = capacity,
                     bookedCount = booked,
                     isFull = full
@@ -656,7 +693,8 @@ class AppointmentRepositoryImpl @Inject constructor(
         val value = date.trim()
         val formats = listOf(
             DateTimeFormatter.ISO_DATE,
-            DateTimeFormatter.ofPattern("dd.MM.yyyy")
+            DateTimeFormatter.ofPattern("dd.MM.yyyy"),
+            DateTimeFormatter.ofPattern("dd/MM/yyyy")
         )
         return formats.firstNotNullOfOrNull { formatter ->
             runCatching { LocalDate.parse(value, formatter) }.getOrNull()
@@ -751,20 +789,29 @@ class AppointmentRepositoryImpl @Inject constructor(
     }
 
     private fun DocumentSnapshot.toAppointment(): Appointment {
+        val rawStatus = readStringField(FirestoreFields.STATUS)
+        if (BuildConfig.DEBUG && rawStatus.isNotBlank()) {
+            val normalizedStatus = rawStatus.trim().uppercase(Locale.ROOT)
+            if (normalizedStatus !in SUPPORTED_STATUS_VALUES) {
+                Log.w(DEBUG_TAG, "unknown_status docId=$id status=$rawStatus fallback=PENDING")
+            }
+        }
         return Appointment(
             id = getString(FirestoreFields.ID)?.takeIf { it.isNotBlank() } ?: id,
-            patientId = getString(FirestoreFields.PATIENT_ID).orEmpty(),
+            patientId = readStringField(FirestoreFields.PATIENT_ID),
             patientName = getString(FirestoreFields.PATIENT_NAME).orEmpty(),
             patientPhone = getString(FirestoreFields.PATIENT_PHONE).orEmpty(),
-            clinicId = getString(FirestoreFields.CLINIC_ID).orEmpty(),
+            clinicId = readStringField(FirestoreFields.CLINIC_ID),
             clinicName = getString(FirestoreFields.CLINIC_NAME).orEmpty(),
-            doctorId = getString(FirestoreFields.DOCTOR_ID).orEmpty(),
+            doctorId = readStringField(FirestoreFields.DOCTOR_ID),
             doctorName = getString(FirestoreFields.DOCTOR_NAME).orEmpty(),
-            service = getString(FirestoreFields.SERVICE).orEmpty(),
-            date = getString(FirestoreFields.DATE).orEmpty(),
-            time = getString(FirestoreFields.TIME).orEmpty(),
+            service = readStringField(FirestoreFields.SERVICE).ifBlank {
+                readStringField("serviceName")
+            },
+            date = readDateField(FirestoreFields.DATE),
+            time = readTimeField(FirestoreFields.TIME),
             duration = getString(FirestoreFields.DURATION).orEmpty(),
-            status = AppointmentStatus.fromStorage(getString(FirestoreFields.STATUS)),
+            status = AppointmentStatus.fromStorage(rawStatus),
             cancelledBy = getString(FirestoreFields.CANCELLED_BY),
             cancelReason = getString(FirestoreFields.CANCEL_REASON),
             cancelledAt = readLongField(FirestoreFields.CANCELLED_AT),
@@ -776,6 +823,96 @@ class AppointmentRepositoryImpl @Inject constructor(
             createdAt = readLongField(FirestoreFields.CREATED_AT) ?: System.currentTimeMillis(),
             updatedAt = readLongField(FirestoreFields.UPDATED_AT) ?: System.currentTimeMillis()
         )
+    }
+
+    private fun mapAppointmentSafely(
+        snapshot: DocumentSnapshot,
+        expectedPatientId: String? = null,
+        expectedDoctorId: String? = null,
+        queryOwnerField: String
+    ): Appointment? {
+        if (BuildConfig.DEBUG) {
+            debugLog("doc_raw id=${snapshot.id} data=${snapshot.data}")
+        }
+
+        val mapped = runCatching { snapshot.toAppointment() }
+            .onFailure { error ->
+                Log.w(
+                    DEBUG_TAG,
+                    "map_failed docId=${snapshot.id} ownerField=$queryOwnerField error=${error.message}",
+                    error
+                )
+            }
+            .getOrNull() ?: return null
+
+        if (!expectedPatientId.isNullOrBlank() && mapped.patientId != expectedPatientId) {
+            debugLog(
+                "doc_skipped_patient_mismatch docId=${snapshot.id} " +
+                    "expected=$expectedPatientId actual=${mapped.patientId}"
+            )
+            return null
+        }
+
+        if (!expectedDoctorId.isNullOrBlank() && mapped.doctorId != expectedDoctorId) {
+            debugLog(
+                "doc_skipped_doctor_mismatch docId=${snapshot.id} " +
+                    "expected=$expectedDoctorId actual=${mapped.doctorId}"
+            )
+            return null
+        }
+
+        if (mapped.id.isBlank() || mapped.clinicId.isBlank()) {
+            debugLog("doc_skipped_invalid docId=${snapshot.id} reason=missing_id_or_clinic")
+            return null
+        }
+
+        debugLog(
+            "map_success docId=${mapped.id} patientId=${mapped.patientId} " +
+                "doctorId=${mapped.doctorId} status=${mapped.status.name}"
+        )
+        return mapped
+    }
+
+    private fun DocumentSnapshot.readStringField(field: String): String {
+        val raw = get(field)
+        return when (raw) {
+            null -> ""
+            is String -> raw.trim()
+            else -> raw.toString().trim()
+        }
+    }
+
+    private fun DocumentSnapshot.readDateField(field: String): String {
+        val raw = get(field) ?: return ""
+        return when (raw) {
+            is String -> raw.trim()
+            is Timestamp -> raw.toDate().toInstant()
+                .atZone(DEFAULT_ZONE_ID)
+                .toLocalDate()
+                .format(DISPLAY_DATE_FORMATTER)
+
+            is Long -> runCatching {
+                java.time.Instant.ofEpochMilli(raw)
+                    .atZone(DEFAULT_ZONE_ID)
+                    .toLocalDate()
+                    .format(DISPLAY_DATE_FORMATTER)
+            }.getOrDefault("")
+
+            else -> raw.toString().trim()
+        }
+    }
+
+    private fun DocumentSnapshot.readTimeField(field: String): String {
+        val raw = get(field) ?: return ""
+        return when (raw) {
+            is String -> raw.trim()
+            is Timestamp -> raw.toDate().toInstant()
+                .atZone(DEFAULT_ZONE_ID)
+                .toLocalTime()
+                .format(TIME_FORMATTER)
+
+            else -> raw.toString().trim()
+        }
     }
 
     private fun DocumentSnapshot.readLongField(field: String): Long? {
@@ -808,5 +945,33 @@ class AppointmentRepositoryImpl @Inject constructor(
 
     companion object {
         private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+        private val DISPLAY_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        private val DEFAULT_ZONE_ID: ZoneId = ZoneId.of("Asia/Almaty")
+        private const val DEBUG_TAG = "APPOINTMENTS_DEBUG"
+        private val SUPPORTED_STATUS_VALUES = setOf(
+            "PENDING",
+            "CONFIRMED",
+            "ACCEPTED",
+            "COMPLETED",
+            "CANCELLED",
+            "CANCELED",
+            "REJECTED",
+            "NO_SHOW",
+            "RESCHEDULED"
+        )
+    }
+
+    private fun isPastSlot(date: String, time: String): Boolean {
+        val slotDate = parseDate(date) ?: return false
+        val slotTime = parseTime(time) ?: return false
+        val now = java.time.ZonedDateTime.now(DEFAULT_ZONE_ID)
+        val slotDateTime = slotDate.atTime(slotTime)
+        return slotDateTime.isBefore(now.toLocalDateTime())
+    }
+
+    private fun debugLog(message: String) {
+        if (BuildConfig.DEBUG) {
+            Log.d(DEBUG_TAG, message)
+        }
     }
 }

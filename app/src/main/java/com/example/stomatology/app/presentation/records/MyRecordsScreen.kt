@@ -1,4 +1,4 @@
-package com.example.stomatology.app.presentation.records
+﻿package com.example.stomatology.app.presentation.records
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -86,19 +87,7 @@ fun MyRecordsScreen(
     var cancelReason by rememberSaveable { mutableStateOf("") }
     var showRescheduleDatePicker by remember { mutableStateOf(false) }
 
-    val visibleAppointments = when (selectedTabIndex) {
-        1 -> state.appointments.filter {
-            it.status == AppointmentStatus.PENDING ||
-                it.status == AppointmentStatus.CONFIRMED ||
-                it.status == AppointmentStatus.RESCHEDULED
-        }
-        2 -> state.appointments.filter {
-            it.status == AppointmentStatus.COMPLETED ||
-                it.status == AppointmentStatus.CANCELLED ||
-                it.status == AppointmentStatus.NO_SHOW
-        }
-        else -> state.appointments
-    }
+    val visibleAppointments = viewModel.appointmentsForTab(selectedTabIndex)
 
     LaunchedEffect(state.actionState) {
         if (state.actionState == MyRecordActionState.Success) {
@@ -185,15 +174,27 @@ fun MyRecordsScreen(
         when {
             state.isLoading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(40.dp),
-                        color = PrimaryBlue,
-                        strokeWidth = 3.dp
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(40.dp),
+                            color = PrimaryBlue,
+                            strokeWidth = 3.dp
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "Jazbalar juktelude...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
             state.error != null && visibleAppointments.isEmpty() -> {
-                EmptyRecordsState(text = state.error ?: stringResource(R.string.records_error_generic))
+                EmptyRecordsState(
+                    text = state.error ?: stringResource(R.string.records_error_generic),
+                    actionText = "Qaitalap koru",
+                    onAction = { viewModel.retryLoadAppointments() }
+                )
             }
             visibleAppointments.isEmpty() -> {
                 EmptyRecordsState(
@@ -208,7 +209,7 @@ fun MyRecordsScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                        .padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(visibleAppointments, key = { item -> item.id }) { appointment ->
@@ -248,24 +249,24 @@ fun MyRecordsScreen(
     if (rescheduleTarget != null) {
         AlertDialog(
             onDismissRequest = { rescheduleTarget = null },
-            title = { Text("Уақытты өзгерту") },
+            title = { Text("РЈР°Т›С‹С‚С‚С‹ У©Р·РіРµСЂС‚Сѓ") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Жаңа күн мен уақытты таңдаңыз",
+                        text = "Р–Р°ТЈР° РєТЇРЅ РјРµРЅ СѓР°Т›С‹С‚С‚С‹ С‚Р°ТЈРґР°ТЈС‹Р·",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     OutlinedTextField(
                         value = rescheduleDate,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Күн") },
+                        label = { Text("РљТЇРЅ") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { showRescheduleDatePicker = true }
                     )
                     OutlinedButton(onClick = { showRescheduleDatePicker = true }) {
-                        Text("Күнді таңдау")
+                        Text("РљТЇРЅРґС– С‚Р°ТЈРґР°Сѓ")
                     }
 
                     if (state.isSlotsLoading) {
@@ -288,12 +289,12 @@ fun MyRecordsScreen(
                         newTime = rescheduleTime
                     )
                 }) {
-                    Text("Сақтау")
+                    Text("РЎР°Т›С‚Р°Сѓ")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { rescheduleTarget = null }) {
-                    Text("Жабу")
+                    Text("Р–Р°Р±Сѓ")
                 }
             }
         )
@@ -302,14 +303,14 @@ fun MyRecordsScreen(
     if (cancelTarget != null) {
         AlertDialog(
             onDismissRequest = { cancelTarget = null },
-            title = { Text("Жазбадан бас тарту") },
+            title = { Text("Р–Р°Р·Р±Р°РґР°РЅ Р±Р°СЃ С‚Р°СЂС‚Сѓ") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Бас тарту себебін жазыңыз")
+                    Text("Р‘Р°СЃ С‚Р°СЂС‚Сѓ СЃРµР±РµР±С–РЅ Р¶Р°Р·С‹ТЈС‹Р·")
                     OutlinedTextField(
                         value = cancelReason,
                         onValueChange = { value -> cancelReason = value },
-                        label = { Text("Себеп") },
+                        label = { Text("РЎРµР±РµРї") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -322,12 +323,12 @@ fun MyRecordsScreen(
                         reason = cancelReason
                     )
                 }) {
-                    Text("Растау")
+                    Text("Р Р°СЃС‚Р°Сѓ")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { cancelTarget = null }) {
-                    Text("Жабу")
+                    Text("Р–Р°Р±Сѓ")
                 }
             }
         )
@@ -335,14 +336,26 @@ fun MyRecordsScreen(
 }
 
 @Composable
-private fun EmptyRecordsState(text: String) {
+private fun EmptyRecordsState(
+    text: String,
+    actionText: String? = null,
+    onAction: (() -> Unit)? = null
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 80.dp),
         contentAlignment = Alignment.TopCenter
     ) {
-        Text(text = text, color = Color.Gray, style = MaterialTheme.typography.bodyLarge)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = text, color = Color.Gray, style = MaterialTheme.typography.bodyLarge)
+            if (!actionText.isNullOrBlank() && onAction != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(onClick = onAction) {
+                    Text(actionText)
+                }
+            }
+        }
     }
 }
 
@@ -368,7 +381,7 @@ private fun AppointmentCard(
                 .padding(18.dp)
         ) {
             Text(
-                text = appointment.clinicName.ifBlank { "Клиника" },
+                text = appointment.clinicName.ifBlank { "РљР»РёРЅРёРєР°" },
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -376,22 +389,22 @@ private fun AppointmentCard(
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Дәрігер: ${appointment.doctorName.ifBlank { "Көрсетілмеген" }}",
+                text = "Р”У™СЂС–РіРµСЂ: ${appointment.doctorName.ifBlank { "РљУ©СЂСЃРµС‚С–Р»РјРµРіРµРЅ" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
             Text(
-                text = "Қызмет: ${appointment.service.ifBlank { "-" }}",
+                text = "ТљС‹Р·РјРµС‚: ${appointment.service.ifBlank { "-" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
             Text(
-                text = "Күні: ${appointment.date.ifBlank { "-" }}",
+                text = "РљТЇРЅС–: ${appointment.date.ifBlank { "-" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
             Text(
-                text = "Уақыты: ${appointment.time.ifBlank { "-" }}",
+                text = "РЈР°Т›С‹С‚С‹: ${appointment.time.ifBlank { "-" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
@@ -399,7 +412,7 @@ private fun AppointmentCard(
             if (appointment.previousDate != null || appointment.previousTime != null) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Алдыңғы уақыт: ${appointment.previousDate.orEmpty()} ${appointment.previousTime.orEmpty()}",
+                    text = "РђР»РґС‹ТЈТ“С‹ СѓР°Т›С‹С‚: ${appointment.previousDate.orEmpty()} ${appointment.previousTime.orEmpty()}",
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.8f)
                 )
@@ -411,11 +424,17 @@ private fun AppointmentCard(
             if (isActive) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onReschedule) {
-                        Text("Уақытты өзгерту")
+                    OutlinedButton(
+                        onClick = onReschedule,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                    ) {
+                        Text("РЈР°Т›С‹С‚С‚С‹ У©Р·РіРµСЂС‚Сѓ")
                     }
-                    OutlinedButton(onClick = onCancel) {
-                        Text("Бас тарту")
+                    OutlinedButton(
+                        onClick = onCancel,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                    ) {
+                        Text("Р‘Р°СЃ С‚Р°СЂС‚Сѓ")
                     }
                 }
             }
@@ -449,7 +468,7 @@ private fun SlotChoiceGrid(
     onSelect: (String) -> Unit
 ) {
     if (slots.isEmpty()) {
-        Text("Бос слот жоқ", color = Color.Gray)
+        Text("Р‘РѕСЃ СЃР»РѕС‚ Р¶РѕТ›", color = Color.Gray)
         return
     }
 
@@ -481,7 +500,7 @@ private fun SlotChoiceGrid(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = slot.time, color = fg, fontWeight = FontWeight.Medium)
                             if (!enabled) {
-                                Text("Толық", color = fg, style = MaterialTheme.typography.labelSmall)
+                                Text("РўРѕР»С‹Т›", color = fg, style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
@@ -521,12 +540,12 @@ private fun RescheduleDatePickerDialog(
                 val date = datePickerState.selectedDateMillis?.let { convertMillisToDate(it) }.orEmpty()
                 onDatePicked(date)
             }) {
-                Text("Таңдау")
+                Text("РўР°ТЈРґР°Сѓ")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Жабу")
+                Text("Р–Р°Р±Сѓ")
             }
         }
     ) {

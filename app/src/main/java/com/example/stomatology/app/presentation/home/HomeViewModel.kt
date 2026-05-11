@@ -1,5 +1,6 @@
 package com.example.stomatology.app.presentation.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stomatology.app.core.util.Resource
@@ -12,6 +13,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -128,15 +130,25 @@ class HomeViewModel @Inject constructor(
     private fun observePatientAppointments() {
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
-            appointmentRepository.getAppointmentsForPatient(uid).collectLatest { appointments ->
-                val recent = appointments.sortedByDescending { it.updatedAt }.take(5)
-                _uiState.update {
-                    it.copy(
-                        recentAppointments = recent,
-                        quickRebook = recent.firstOrNull()
-                    )
+            appointmentRepository.getAppointmentsForPatient(uid)
+                .catch { throwable ->
+                    Log.w(TAG, "home_appointments_failed uid=$uid message=${throwable.message}", throwable)
+                    _uiState.update {
+                        it.copy(
+                            recentAppointments = emptyList(),
+                            quickRebook = null
+                        )
+                    }
                 }
-            }
+                .collectLatest { appointments ->
+                    val recent = appointments.sortedByDescending { it.updatedAt }.take(5)
+                    _uiState.update {
+                        it.copy(
+                            recentAppointments = recent,
+                            quickRebook = recent.firstOrNull()
+                        )
+                    }
+                }
         }
     }
 
@@ -212,5 +224,9 @@ class HomeViewModel @Inject constructor(
             kotlin.math.sin(dLon / 2) * kotlin.math.sin(dLon / 2)
         val c = 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))
         return earthRadiusKm * c
+    }
+
+    companion object {
+        private const val TAG = "HomeViewModel"
     }
 }
