@@ -1,5 +1,6 @@
 package com.example.stomatology.app.presentation.doctor_dashboard
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stomatology.app.domain.model.Appointment
@@ -8,10 +9,13 @@ import com.example.stomatology.app.domain.repository.AppointmentRepository
 import com.example.stomatology.app.domain.repository.AppointmentValidationException
 import com.example.stomatology.app.domain.repository.SlotAlreadyBookedException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestoreException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -91,6 +95,25 @@ class DoctorAppointmentViewModel @Inject constructor(
 
         viewModelScope.launch {
             appointmentRepository.getAppointmentsForDoctor(currentDoctorId)
+                .onStart {
+                    _uiState.update { it.copy(isLoading = true, error = null) }
+                }
+                .catch { throwable ->
+                    val error = mapLoadError(throwable)
+                    Log.e(
+                        APPOINTMENTS_DEBUG_TAG,
+                        "doctor_state=error uid=$currentDoctorId message=${throwable.message}",
+                        throwable
+                    )
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            appointments = emptyList(),
+                            actionState = AppointmentActionState.GeneralError,
+                            error = error
+                        )
+                    }
+                }
                 .collectLatest { appointments ->
                     _uiState.update {
                         it.copy(
@@ -163,5 +186,18 @@ class DoctorAppointmentViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun mapLoadError(throwable: Throwable): String {
+        val firestoreError = throwable as? FirebaseFirestoreException
+        return when (firestoreError?.code) {
+            FirebaseFirestoreException.Code.PERMISSION_DENIED -> "Жазбаларды көруге рұқсат жоқ."
+            FirebaseFirestoreException.Code.UNAVAILABLE -> "Интернет байланысын тексеріңіз."
+            else -> "Жазбаларды жүктеу кезінде қате пайда болды."
+        }
+    }
+
+    companion object {
+        private const val APPOINTMENTS_DEBUG_TAG = "APPOINTMENTS_DEBUG"
     }
 }

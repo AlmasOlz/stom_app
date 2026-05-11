@@ -17,7 +17,7 @@ enum class AppointmentStatus {
                 "PENDING" -> PENDING
                 "CONFIRMED", "ACCEPTED" -> CONFIRMED
                 "COMPLETED" -> COMPLETED
-                "CANCELLED", "REJECTED" -> CANCELLED
+                "CANCELLED", "CANCELED", "REJECTED" -> CANCELLED
                 "NO_SHOW" -> NO_SHOW
                 "RESCHEDULED" -> RESCHEDULED
                 else -> PENDING

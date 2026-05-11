@@ -1,5 +1,7 @@
 package com.example.stomatology.app.presentation.records
 
+import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,15 +20,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -34,9 +40,6 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -79,6 +82,7 @@ fun MyRecordsScreen(
         stringResource(R.string.records_tab_upcoming),
         stringResource(R.string.records_tab_past)
     )
+
     var rescheduleTarget by remember { mutableStateOf<Appointment?>(null) }
     var cancelTarget by remember { mutableStateOf<Appointment?>(null) }
     var rescheduleDate by rememberSaveable { mutableStateOf("") }
@@ -86,19 +90,7 @@ fun MyRecordsScreen(
     var cancelReason by rememberSaveable { mutableStateOf("") }
     var showRescheduleDatePicker by remember { mutableStateOf(false) }
 
-    val visibleAppointments = when (selectedTabIndex) {
-        1 -> state.appointments.filter {
-            it.status == AppointmentStatus.PENDING ||
-                it.status == AppointmentStatus.CONFIRMED ||
-                it.status == AppointmentStatus.RESCHEDULED
-        }
-        2 -> state.appointments.filter {
-            it.status == AppointmentStatus.COMPLETED ||
-                it.status == AppointmentStatus.CANCELLED ||
-                it.status == AppointmentStatus.NO_SHOW
-        }
-        else -> state.appointments
-    }
+    val visibleAppointments = viewModel.appointmentsForTab(selectedTabIndex)
 
     LaunchedEffect(state.actionState) {
         if (state.actionState == MyRecordActionState.Success) {
@@ -108,6 +100,19 @@ fun MyRecordsScreen(
             rescheduleTime = ""
             cancelReason = ""
         }
+    }
+
+    LaunchedEffect(state.appointmentsUiState, selectedTabIndex, visibleAppointments.size) {
+        val stateName = when (state.appointmentsUiState) {
+            is AppointmentsUiState.Loading -> "Loading"
+            is AppointmentsUiState.Empty -> "Empty"
+            is AppointmentsUiState.Success -> "Success"
+            is AppointmentsUiState.Error -> "Error"
+        }
+        Log.d(
+            APPOINTMENTS_DEBUG_TAG,
+            "ui_state=$stateName tab=$selectedTabIndex visibleCount=${visibleAppointments.size} total=${state.appointments.size}"
+        )
     }
 
     Column(
@@ -182,16 +187,19 @@ fun MyRecordsScreen(
             }
         }
 
-        when {
-            state.isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryBlue)
-                }
+        when (val appointmentsState = state.appointmentsUiState) {
+            is AppointmentsUiState.Loading -> {
+                LoadingRecordsState(text = "Жазбалар жүктелуде...")
             }
-            state.error != null && visibleAppointments.isEmpty() -> {
-                EmptyRecordsState(text = state.error ?: stringResource(R.string.records_error_generic))
+
+            is AppointmentsUiState.Error -> {
+                ErrorRecordsState(
+                    text = appointmentsState.message,
+                    onRetry = viewModel::retryLoadAppointments
+                )
             }
-            visibleAppointments.isEmpty() -> {
+
+            is AppointmentsUiState.Empty -> {
                 EmptyRecordsState(
                     text = when (selectedTabIndex) {
                         1 -> stringResource(R.string.records_empty_upcoming)
@@ -200,27 +208,39 @@ fun MyRecordsScreen(
                     }
                 )
             }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(visibleAppointments, key = { item -> item.id }) { appointment ->
-                        AppointmentCard(
-                            appointment = appointment,
-                            onReschedule = {
-                                rescheduleTarget = appointment
-                                rescheduleDate = appointment.date
-                                rescheduleTime = ""
-                                viewModel.loadRescheduleSlots(appointment, appointment.date)
-                            },
-                            onCancel = {
-                                cancelTarget = appointment
-                                cancelReason = ""
-                            }
-                        )
+
+            is AppointmentsUiState.Success -> {
+                if (visibleAppointments.isEmpty()) {
+                    EmptyRecordsState(
+                        text = when (selectedTabIndex) {
+                            1 -> stringResource(R.string.records_empty_upcoming)
+                            2 -> stringResource(R.string.records_empty_past)
+                            else -> stringResource(R.string.records_empty_all)
+                        }
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp)
+                            .padding(top = 24.dp, bottom = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(visibleAppointments, key = { item -> item.id }) { appointment ->
+                            AppointmentCard(
+                                appointment = appointment,
+                                onReschedule = {
+                                    rescheduleTarget = appointment
+                                    rescheduleDate = appointment.date
+                                    rescheduleTime = ""
+                                    viewModel.loadRescheduleSlots(appointment, appointment.date)
+                                },
+                                onCancel = {
+                                    cancelTarget = appointment
+                                    cancelReason = ""
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -343,6 +363,49 @@ private fun EmptyRecordsState(text: String) {
 }
 
 @Composable
+private fun LoadingRecordsState(text: String) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CircularProgressIndicator(color = PrimaryBlue)
+            Text(text = text, color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+private fun ErrorRecordsState(
+    text: String,
+    onRetry: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = text.ifBlank { stringResource(id = R.string.records_error_generic) },
+                color = Color.Gray,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Button(onClick = onRetry) {
+                Text("Қайталап көру")
+            }
+        }
+    }
+}
+
+@Composable
 private fun AppointmentCard(
     appointment: Appointment,
     onReschedule: () -> Unit,
@@ -407,10 +470,22 @@ private fun AppointmentCard(
             if (isActive) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onReschedule) {
-                        Text("Уақытты өзгерту")
+                    OutlinedButton(
+                        onClick = onReschedule,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White
+                        ),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f))
+                    ) {
+                        Text("Қайта жазылу")
                     }
-                    OutlinedButton(onClick = onCancel) {
+                    OutlinedButton(
+                        onClick = onCancel,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White
+                        ),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f))
+                    ) {
                         Text("Бас тарту")
                     }
                 }
@@ -529,3 +604,5 @@ private fun RescheduleDatePickerDialog(
         DatePicker(state = datePickerState)
     }
 }
+
+private const val APPOINTMENTS_DEBUG_TAG = "APPOINTMENTS_DEBUG"

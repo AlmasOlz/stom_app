@@ -1,5 +1,6 @@
 package com.example.stomatology.app.presentation.doctor_dashboard
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stomatology.app.core.firebase.FirestoreCollections
@@ -12,7 +13,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -105,6 +108,24 @@ class DoctorDashboardViewModel @Inject constructor(
 
         viewModelScope.launch {
             appointmentRepository.getAppointmentsForDoctor(currentDoctorId)
+                .onStart {
+                    _uiState.update { it.copy(isLoading = true, error = null) }
+                }
+                .catch { throwable ->
+                    Log.e(
+                        APPOINTMENTS_DEBUG_TAG,
+                        "dashboard_state=error uid=$currentDoctorId message=${throwable.message}",
+                        throwable
+                    )
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            recentAppointments = emptyList(),
+                            nextAppointment = null,
+                            error = "Жазбаларды жүктеу кезінде қате пайда болды."
+                        )
+                    }
+                }
                 .collectLatest { appointments ->
                     val today = LocalDate.now()
                     val nowTimeMinutes = LocalTime.now().hour * 60 + LocalTime.now().minute
@@ -165,7 +186,8 @@ class DoctorDashboardViewModel @Inject constructor(
 
         val formatters = listOf(
             DateTimeFormatter.ISO_DATE,
-            DateTimeFormatter.ofPattern("dd.MM.yyyy")
+            DateTimeFormatter.ofPattern("dd.MM.yyyy"),
+            DateTimeFormatter.ofPattern("dd/MM/yyyy")
         )
 
         return formatters.firstNotNullOfOrNull { formatter ->
@@ -182,5 +204,9 @@ class DoctorDashboardViewModel @Inject constructor(
             val parsed = LocalTime.parse(value, DateTimeFormatter.ofPattern("HH:mm"))
             parsed.hour * 60 + parsed.minute
         }.getOrNull()
+    }
+
+    companion object {
+        private const val APPOINTMENTS_DEBUG_TAG = "APPOINTMENTS_DEBUG"
     }
 }
