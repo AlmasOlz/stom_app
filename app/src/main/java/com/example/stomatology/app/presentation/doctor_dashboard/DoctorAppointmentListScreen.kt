@@ -196,48 +196,55 @@ private fun DoctorAppointmentCard(
                 fontWeight = FontWeight.SemiBold
             )
 
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(
-                    onClick = onOpenDetail,
-                    modifier = Modifier.weight(1f)
-                ) {
+                OutlinedButton(onClick = onOpenDetail, modifier = Modifier.fillMaxWidth()) {
                     Text("Толығырақ")
                 }
 
                 when (appointment.status) {
                     AppointmentStatus.PENDING -> {
-                        Button(
-                            onClick = onAccept,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Растау")
-                        }
-                        OutlinedButton(
-                            onClick = onReject,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Бас тарту")
+                            Button(
+                                onClick = onAccept,
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                            ) {
+                                Text("Растау")
+                            }
+                            OutlinedButton(
+                                onClick = onReject,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Бас тарту")
+                            }
                         }
                     }
 
                     AppointmentStatus.CONFIRMED,
                     AppointmentStatus.RESCHEDULED -> {
-                        Button(
-                            onClick = onComplete,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Аяқтау")
-                        }
-                        OutlinedButton(
-                            onClick = onNoShow,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Келмеді")
+                            Button(
+                                onClick = onComplete,
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                            ) {
+                                Text("Аяқтау")
+                            }
+                            OutlinedButton(
+                                onClick = onNoShow,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Келмеді")
+                            }
                         }
                     }
 

@@ -39,6 +39,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,6 +53,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -296,9 +298,17 @@ private fun QuickRebookHeroCard(
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 OutlinedButton(
-                    onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) }
+                    onClick = { onQuickRebook(quickRebook.clinicId, quickRebook.service) },
+                    border = BorderStroke(1.dp, Color.White),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = PrimaryBlue
+                    )
                 ) {
-                    Text("1 батырмамен жазылу")
+                    Text(
+                        text = "Қайта жазылу",
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
@@ -334,7 +344,7 @@ private fun NearbyClinicsSection(
     ) {
         items(clinics.take(8)) { clinic ->
             Card(
-                modifier = Modifier
+                modifier = Modifierпш
                     .width(220.dp)
                     .clickable { onOpenClinic(clinic.id, clinic.services.firstOrNull().orEmpty()) },
                 shape = RoundedCornerShape(12.dp),

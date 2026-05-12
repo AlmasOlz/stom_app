@@ -3,13 +3,19 @@ package com.example.stomatology.app.presentation.doctor_dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +34,7 @@ import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.AppointmentStatus
 import com.example.stomatology.app.domain.model.toUiText
 import com.example.stomatology.app.presentation.components.AppBackButton
+import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,10 +102,14 @@ private fun AppointmentDetailContent(
     val actionEnabled = !isFinalStatus && !actionLoading
 
     Column(
-        modifier = modifier,
+        modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = appointment.patientName.ifBlank { "Пациент" },
@@ -119,39 +130,68 @@ private fun AppointmentDetailContent(
         }
 
         state.error?.let { error ->
-            Text(text = error, color = MaterialTheme.colorScheme.error)
+            Text(
+                text = error,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
 
-        Button(
-            onClick = onAccept,
-            enabled = actionEnabled,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Қабылдау")
-        }
+        when (appointment.status) {
+            AppointmentStatus.PENDING -> {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = onAccept,
+                        enabled = actionEnabled,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    ) {
+                        Text("Растау")
+                    }
+                    OutlinedButton(
+                        onClick = onReject,
+                        enabled = actionEnabled,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Бас тарту")
+                    }
+                }
+            }
 
-        OutlinedButton(
-            onClick = onReject,
-            enabled = actionEnabled,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Бас тарту")
-        }
+            AppointmentStatus.CONFIRMED,
+            AppointmentStatus.RESCHEDULED -> {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = onComplete,
+                        enabled = actionEnabled,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    ) {
+                        Text("Аяқтау")
+                    }
+                    OutlinedButton(
+                        onClick = onNoShow,
+                        enabled = actionEnabled,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Пациент келмеді")
+                    }
+                }
+            }
 
-        OutlinedButton(
-            onClick = onComplete,
-            enabled = actionEnabled,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Аяқтау")
-        }
-
-        OutlinedButton(
-            onClick = onNoShow,
-            enabled = actionEnabled,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Пациент келмеді")
+            else -> {
+                Text(
+                    text = "Бұл жазба бойынша әрекет қажет емес.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
+            }
         }
     }
 }
