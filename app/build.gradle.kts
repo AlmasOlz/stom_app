@@ -9,6 +9,14 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+// google-services.json is gitignored; new clones fail :app:processDebugGoogleServices without it.
+// Copy the checked-in template so Gradle can run; replace with your real file from Firebase Console when needed.
+val googleServicesJson = file("google-services.json")
+val googleServicesExample = file("google-services.example.json")
+if (!googleServicesJson.exists() && googleServicesExample.exists()) {
+    googleServicesExample.copyTo(googleServicesJson, overwrite = false)
+}
+
 val localProperties = gradleLocalProperties(rootDir, providers)
 
 val apiBaseUrl: String = providers

@@ -9,6 +9,8 @@
 5. Put it into:
    - `app/google-services.json`
 
+If you do not have the file yet, the first Gradle sync will **copy** `app/google-services.example.json` → `app/google-services.json` so the project can build. Replace that copy with the real download from Firebase when you have API keys and production settings.
+
 Reference template:
 - `app/google-services.example.json`
 
