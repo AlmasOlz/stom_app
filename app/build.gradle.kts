@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,9 +9,15 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+val localProperties = gradleLocalProperties(rootDir, providers)
+
 val apiBaseUrl: String = providers
     .gradleProperty("apiBaseUrl")
-    .orElse("http://10.0.2.2:8000/")
+    .orElse("http://192.168.179.135:8000/")
+    .get()
+val mapboxAccessToken: String = providers
+    .gradleProperty("mapboxAccessToken")
+    .orElse(localProperties.getProperty("mapboxAccessToken").orEmpty())
     .get()
 val cloudinaryCloudName: String = providers
     .gradleProperty("cloudinaryCloudName")
@@ -32,7 +40,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "AI_BASE_URL", "\"$apiBaseUrl\"")
         buildConfigField("String", "BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"$mapboxAccessToken\"")
         buildConfigField("String", "CLOUDINARY_CLOUD_NAME", "\"$cloudinaryCloudName\"")
         buildConfigField("String", "CLOUDINARY_UPLOAD_PRESET", "\"$cloudinaryUploadPreset\"")
         buildConfigField("int", "NETWORK_TIMEOUT_SECONDS", "30")

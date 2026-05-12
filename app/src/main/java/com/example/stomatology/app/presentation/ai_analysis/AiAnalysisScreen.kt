@@ -91,6 +91,7 @@ fun AiAnalysisScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    val isLoading = uiState is AiState.Loading
 
     var selectedFinding by remember { mutableStateOf<Finding?>(null) }
     var selectedDisplayNumber by remember { mutableStateOf<Int?>(null) }
@@ -109,7 +110,7 @@ fun AiAnalysisScreen(
                 .onFailure {
                     selectedFinding = null
                     selectedDisplayNumber = null
-                    viewModel.resetState()
+                    viewModel.onImageSelectionFailed()
                 }
         }
     }
@@ -188,6 +189,7 @@ fun AiAnalysisScreen(
                         )
                         Button(
                             onClick = { viewModel.analyzeComplaint(complaintText) },
+                            enabled = !isLoading,
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -195,6 +197,7 @@ fun AiAnalysisScreen(
                         }
                         Button(
                             onClick = { galleryLauncher.launch("image/*") },
+                            enabled = !isLoading,
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -205,14 +208,28 @@ fun AiAnalysisScreen(
                 }
 
                 is AiState.Loading -> {
-                    Spacer(modifier = Modifier.weight(1f))
-                    CircularProgressIndicator(color = PrimaryBlue)
-                    Text(
-                        "AI суретті талдап жатыр...",
-                        color = PrimaryBlue,
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(color = PrimaryBlue)
+                            Text(
+                                text = "Деректер жүктелуде...",
+                                color = PrimaryBlue,
+                                modifier = Modifier.padding(top = 16.dp)
+                            )
+                        }
+                    }
                 }
 
                 is AiState.Success -> {
@@ -376,6 +393,7 @@ fun AiAnalysisScreen(
 
                     Button(
                         onClick = { galleryLauncher.launch("image/*") },
+                        enabled = !isLoading,
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                     ) {
                         Text("Басқа суретті талдау", color = Color.White)
@@ -439,10 +457,17 @@ fun AiAnalysisScreen(
                             )
                             Spacer(modifier = Modifier.height(14.dp))
                             Button(
+                                onClick = { viewModel.retryLastAnalysis() },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                            ) {
+                                Text("Қайталап көру")
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
                                 onClick = { galleryLauncher.launch("image/*") },
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                             ) {
-                                Text("Қайта көру")
+                                Text("Сурет таңдау")
                             }
                         }
                     }
@@ -707,7 +732,7 @@ private fun ReportOverviewCard(report: AiAnalysisReport) {
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MetricPill("Сау", report.healthyTeeth.toString(), Color(0xFF43A047), Modifier.weight(1f))
-                MetricPill("Қалпына", report.restorationCount.toString(), ColorFilling, Modifier.weight(1f))
+                MetricPill("Қалпына келтіру", report.restorationCount.toString(), ColorFilling, Modifier.weight(1f))
                 MetricPill("Емдеу қажет", report.activeTreatmentTeeth.size.toString(), Color(0xFF7E57C2), Modifier.weight(1f))
             }
 

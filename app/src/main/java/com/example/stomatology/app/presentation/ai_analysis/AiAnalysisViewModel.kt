@@ -32,31 +32,57 @@ class AiAnalysisViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<AiState>(AiState.Idle)
     val uiState: StateFlow<AiState> = _uiState
 
+    private var lastImageForRetry: File? = null
+
     fun analyzeImage(file: File) {
+        if (_uiState.value is AiState.Loading) return
+        lastImageForRetry = file
+
         viewModelScope.launch {
             _uiState.value = AiState.Loading
+            runCatching {
+                repository.analyzeImage(file)
+            }.fold(
+                onSuccess = { result ->
+                    when (result) {
+                        is Resource.Success -> {
+                            val clinics = loadClinicsForReport()
+                            val report = buildAnalysisReport(result.data, clinics)
+                            _uiState.value = AiState.Success(
+                                result = result.data,
+                                report = report
+                            )
+                        }
 
-            when (val result = repository.analyzeImage(file)) {
-                is Resource.Success -> {
-                    val clinics = loadClinicsForReport()
-                    val report = buildAnalysisReport(result.data, clinics)
-                    _uiState.value = AiState.Success(
-                        result = result.data,
-                        report = report
-                    )
-                }
+                        is Resource.Error -> {
+                            _uiState.value = AiState.Error(
+                                result.message.ifBlank { GENERIC_ANALYSIS_ERROR }
+                            )
+                        }
 
-                is Resource.Error -> {
-                    _uiState.value = AiState.Error(
-                        result.message.ifBlank { "Талдауды орындау мүмкін болмады" }
-                    )
+                        is Resource.Loading -> {
+                            _uiState.value = AiState.Loading
+                        }
+                    }
+                },
+                onFailure = { throwable ->
+                    _uiState.value = AiState.Error(mapThrowableToUserMessage(throwable))
                 }
-
-                is Resource.Loading -> {
-                    _uiState.value = AiState.Loading
-                }
-            }
+            )
         }
+    }
+
+    fun retryLastAnalysis() {
+        val file = lastImageForRetry
+        if (file == null || !file.exists()) {
+            _uiState.value = AiState.Error("Суретті қайта таңдаңыз.")
+            return
+        }
+        analyzeImage(file)
+    }
+
+    fun onImageSelectionFailed() {
+        _uiState.value = AiState.Error("Суретті оқу мүмкін болмады. Басқа суретті таңдаңыз.")
     }
 
     fun resetState() {
@@ -66,13 +92,14 @@ class AiAnalysisViewModel @Inject constructor(
 
     fun analyzeComplaint(raw: String) {
         val complaint = raw.trim()
-        if (complaint.isEmpty()) return
-        viewModelScope.launch {
-            _uiState.value = AiState.ComplaintSuccess(
-                complaint = complaint,
-                recommendation = buildComplaintRecommendation(complaint)
-            )
+        if (complaint.isEmpty()) {
+            _uiState.value = AiState.Error("Шағым мәтінін енгізіңіз.")
+            return
         }
+        _uiState.value = AiState.ComplaintSuccess(
+            complaint = complaint,
+            recommendation = buildComplaintRecommendation(complaint)
+        )
     }
 
     private fun buildComplaintRecommendation(text: String): String {
@@ -96,19 +123,19 @@ class AiAnalysisViewModel @Inject constructor(
     }
 
     private suspend fun loadClinicsForReport(): List<Clinic> {
-    val fromFirestore = loadClinicsDirectlyFromFirestore()
-    if (fromFirestore.isNotEmpty()) {
-        return fromFirestore
-    }
-
-    return runCatching {
-        when (val result = repository.getClinics().first { it !is Resource.Loading }) {
-            is Resource.Success -> result.data
-            is Resource.Error -> emptyList()
-            is Resource.Loading -> emptyList()
+        val fromFirestore = loadClinicsDirectlyFromFirestore()
+        if (fromFirestore.isNotEmpty()) {
+            return fromFirestore
         }
-    }.getOrDefault(emptyList())
-}
+
+        return runCatching {
+            when (val result = repository.getClinics().first { it !is Resource.Loading }) {
+                is Resource.Success -> result.data
+                is Resource.Error -> emptyList()
+                is Resource.Loading -> emptyList()
+            }
+        }.getOrDefault(emptyList())
+    }
 
     private suspend fun loadClinicsDirectlyFromFirestore(): List<Clinic> {
         return runCatching {
@@ -120,6 +147,24 @@ class AiAnalysisViewModel @Inject constructor(
                 clinic.takeIf { it.name.isNotBlank() }
             }
         }.getOrDefault(emptyList())
+    }
+
+    private fun mapThrowableToUserMessage(throwable: Throwable): String {
+        val lower = throwable.message.orEmpty().lowercase()
+        return when {
+            lower.contains("timeout") -> "Сұраныс уақыты аяқталды. Қайталап көріңіз."
+            lower.contains("failed to connect") ||
+                lower.contains("connection refused") ||
+                lower.contains("unable to resolve host") ||
+                lower.contains("network") ||
+                lower.contains("socket") -> "Интернет байланысын тексеріңіз."
+
+            else -> GENERIC_ANALYSIS_ERROR
+        }
+    }
+
+    private companion object {
+        const val GENERIC_ANALYSIS_ERROR = "Суретті талдау мүмкін болмады."
     }
 }
 

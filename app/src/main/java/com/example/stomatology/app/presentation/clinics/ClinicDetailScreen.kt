@@ -59,18 +59,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.stomatology.app.BuildConfig
 import com.example.stomatology.app.R
 import com.example.stomatology.app.domain.model.Clinic
 import com.example.stomatology.app.presentation.components.AppBackButton
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailability
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -153,18 +146,13 @@ fun ClinicDetailScreen(
 
             else -> {
                 val hasLocation = hasClinicLocation(clinic)
-                val markerPosition = if (hasLocation) {
+                val canRenderMap = hasLocation && canRenderMapboxEmbeddedMap()
+                val mapboxMapUrl = if (canRenderMap) {
                     remember(clinic.id, clinic.latitude, clinic.longitude) {
-                        LatLng(clinic.latitude, clinic.longitude)
+                        buildMapboxStaticMapUrl(clinic)
                     }
                 } else {
                     null
-                }
-                val canRenderMap = hasLocation && remember(context) { canRenderEmbeddedMap(context) }
-                val cameraPositionState = markerPosition?.let { latLng ->
-                    rememberCameraPositionState {
-                        position = CameraPosition.fromLatLngZoom(latLng, 15f)
-                    }
                 }
 
                 Column(
@@ -265,7 +253,7 @@ fun ClinicDetailScreen(
                             text = stringResource(id = R.string.clinic_working_hours_default)
                         )
 
-                        if (hasLocation && markerPosition != null && cameraPositionState != null && canRenderMap) {
+                        if (hasLocation && canRenderMap && !mapboxMapUrl.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(20.dp))
                             Text("Орналасуы", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(8.dp))
@@ -277,16 +265,12 @@ fun ClinicDetailScreen(
                                 shape = RoundedCornerShape(14.dp),
                                 border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.6f))
                             ) {
-                                GoogleMap(
+                                AsyncImage(
+                                    model = mapboxMapUrl,
+                                    contentDescription = "Картада ${clinic.name}",
                                     modifier = Modifier.fillMaxSize(),
-                                    cameraPositionState = cameraPositionState
-                                ) {
-                                    Marker(
-                                        state = MarkerState(position = markerPosition),
-                                        title = clinic.name,
-                                        snippet = clinic.address
-                                    )
-                                }
+                                    contentScale = ContentScale.Crop
+                                )
                             }
                         } else if (hasLocation) {
                             Spacer(modifier = Modifier.height(20.dp))
@@ -455,7 +439,7 @@ private fun MapUnavailableCard(onOpenMap: () -> Unit) {
                 color = Color.Black
             )
             Text(
-                text = "Google Maps уақытша ашылмады. Орналасуды сыртқы картадан ашыңыз.",
+                text = "Mapbox картасы уақытша ашылмады. Орналасуды сыртқы картадан ашыңыз.",
                 style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
@@ -531,26 +515,26 @@ private fun dayAbbreviationToDayOfWeek(value: String): DayOfWeek? {
     }
 }
 
-private fun canRenderEmbeddedMap(context: Context): Boolean {
-    val hasGooglePlayServices = GoogleApiAvailability.getInstance()
-        .isGooglePlayServicesAvailable(context) == ConnectionResult.SUCCESS
-    if (!hasGooglePlayServices) return false
-
-    val apiKey = runCatching {
-        val appInfo = context.packageManager.getApplicationInfo(
-            context.packageName,
-            android.content.pm.PackageManager.GET_META_DATA
-        )
-        appInfo.metaData?.getString("com.google.android.geo.API_KEY").orEmpty()
-    }.getOrDefault("")
-
-    return apiKey.isNotBlank()
+private fun canRenderMapboxEmbeddedMap(): Boolean {
+    return BuildConfig.MAPBOX_ACCESS_TOKEN.isNotBlank()
 }
 
 private fun hasClinicLocation(clinic: Clinic): Boolean {
     return clinic.latitude in -90.0..90.0 &&
         clinic.longitude in -180.0..180.0 &&
         (clinic.latitude != 0.0 || clinic.longitude != 0.0)
+}
+
+private fun buildMapboxStaticMapUrl(clinic: Clinic): String {
+    val token = BuildConfig.MAPBOX_ACCESS_TOKEN
+    if (token.isBlank()) return ""
+
+    val latitude = clinic.latitude
+    val longitude = clinic.longitude
+    val marker = "pin-s+00AEEF($longitude,$latitude)"
+    val camera = "$longitude,$latitude,15,0"
+
+    return "https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/$marker/$camera/1200x400?access_token=$token"
 }
 
 private fun openClinicInMaps(context: Context, clinic: Clinic): Boolean {
