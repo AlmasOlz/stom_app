@@ -182,7 +182,7 @@ fun MyRecordsScreen(
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "Jazbalar juktelude...",
+                            text = "Жазбалар жүктелуде...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -192,7 +192,7 @@ fun MyRecordsScreen(
             state.error != null && visibleAppointments.isEmpty() -> {
                 EmptyRecordsState(
                     text = state.error ?: stringResource(R.string.records_error_generic),
-                    actionText = "Qaitalap koru",
+                    actionText = "Қайталап көру",
                     onAction = { viewModel.retryLoadAppointments() }
                 )
             }

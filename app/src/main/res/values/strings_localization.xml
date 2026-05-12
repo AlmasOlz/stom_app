@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Төменгі навигация және әкімші/дәрігер маршруттары (profile/strings.xml-дан бөлек) -->
     <string name="nav_notifications">Хабарламалар</string>
     <string name="nav_dashboard">Бақылау</string>
     <string name="nav_home">Басты бет</string>
@@ -8,4 +7,6 @@
     <string name="nav_profile">Жеке бет</string>
     <string name="nav_admin">Әкімші</string>
     <string name="nav_appointments">Жазбалар</string>
+    <string name="nav_users">Қолданушылар</string>
+    <string name="nav_clinics">Клиникалар</string>
 </resources>

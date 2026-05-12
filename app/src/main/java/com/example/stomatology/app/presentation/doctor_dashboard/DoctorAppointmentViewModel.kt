@@ -50,6 +50,17 @@ class DoctorAppointmentViewModel @Inject constructor(
         observeAppointments()
     }
 
+    fun retryLoadAppointments() {
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                error = null,
+                actionState = AppointmentActionState.Idle
+            )
+        }
+        observeAppointments()
+    }
+
     fun accept(id: String) {
         updateStatus(id, AppointmentStatus.CONFIRMED)
     }
@@ -108,6 +119,7 @@ class DoctorAppointmentViewModel @Inject constructor(
                         it.copy(
                             appointments = appointments.sortedByDescending { item -> item.createdAt },
                             isLoading = false,
+                            actionState = AppointmentActionState.Idle,
                             error = null
                         )
                     }
@@ -118,9 +130,10 @@ class DoctorAppointmentViewModel @Inject constructor(
     private fun mapLoadError(throwable: Throwable): String {
         val firestoreError = throwable as? FirebaseFirestoreException
         return when (firestoreError?.code) {
-            FirebaseFirestoreException.Code.PERMISSION_DENIED -> "Jazbalardy koruge ruqsat joq."
-            FirebaseFirestoreException.Code.UNAVAILABLE -> "Internet bailanysyn tekseriniz."
-            else -> "Jazbalardy jukteu kezinde qate paida boldy."
+            FirebaseFirestoreException.Code.PERMISSION_DENIED -> "Жазбаларды көруге рұқсат жоқ."
+            FirebaseFirestoreException.Code.UNAVAILABLE -> "Интернет байланысын тексеріңіз."
+            FirebaseFirestoreException.Code.FAILED_PRECONDITION -> "Жазбаларды жүктеу кезінде қате пайда болды."
+            else -> "Жазбаларды жүктеу кезінде қате пайда болды."
         }
     }
 

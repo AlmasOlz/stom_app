@@ -92,7 +92,7 @@ class MyRecordsViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     actionState = MyRecordActionState.ValidationError,
-                    error = "Derek tolyq emes"
+                    error = "Дерек толық емес"
                 )
             }
             return
@@ -125,7 +125,7 @@ class MyRecordsViewModel @Inject constructor(
                         isSlotsLoading = false,
                         rescheduleSlots = emptyList(),
                         actionState = MyRecordActionState.GeneralError,
-                        error = "Bos uaqyttardy jukteu mumkin bolmady"
+                        error = "Бос уақыттарды жүктеу мүмкін болмады"
                     )
                 }
             }
@@ -162,7 +162,7 @@ class MyRecordsViewModel @Inject constructor(
                     newDate = newDate,
                     newTime = newTime,
                     changedBy = uid,
-                    reason = "Pacient uaqytty ozgertti"
+                    reason = "Пациент уақытты өзгертті"
                 )
                 _uiState.update {
                     it.copy(
@@ -174,21 +174,21 @@ class MyRecordsViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         actionState = MyRecordActionState.SlotAlreadyBooked,
-                        error = "Bul uaqyt bos emes"
+                        error = "Бұл уақыт бос емес"
                     )
                 }
             } catch (e: AppointmentValidationException) {
                 _uiState.update {
                     it.copy(
                         actionState = MyRecordActionState.ValidationError,
-                        error = e.message ?: "Tekseru qatesi"
+                        error = e.message ?: "Тексеру қатесі"
                     )
                 }
             } catch (_: Exception) {
                 _uiState.update {
                     it.copy(
                         actionState = MyRecordActionState.GeneralError,
-                        error = "Uaqytty ozgertu mumkin bolmady"
+                        error = "Уақытты өзгерту мүмкін болмады"
                     )
                 }
             }
@@ -231,7 +231,7 @@ class MyRecordsViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         actionState = MyRecordActionState.ValidationError,
-                        error = e.message ?: "Tekseru qatesi"
+                        error = e.message ?: "Тексеру қатесі"
                     )
                 }
             } catch (_: Exception) {
@@ -300,8 +300,8 @@ class MyRecordsViewModel @Inject constructor(
     private fun firestoreErrorMessage(e: Throwable): String {
         val fe = e as? FirebaseFirestoreException ?: return ERROR_LOAD_FAILED
         return when (fe.code) {
-            FirebaseFirestoreException.Code.PERMISSION_DENIED -> "Jazbalardy koruge ruqsat joq."
-            FirebaseFirestoreException.Code.UNAVAILABLE -> "Internet bailanysyn tekseriniz."
+            FirebaseFirestoreException.Code.PERMISSION_DENIED -> "Жазбаларды көруге рұқсат жоқ."
+            FirebaseFirestoreException.Code.UNAVAILABLE -> "Интернет байланысын тексеріңіз."
             FirebaseFirestoreException.Code.FAILED_PRECONDITION -> ERROR_LOAD_FAILED
             else -> ERROR_LOAD_FAILED
         }
@@ -373,8 +373,8 @@ class MyRecordsViewModel @Inject constructor(
         private const val DEBUG_TAG = "APPOINTMENTS_DEBUG"
         private const val TAB_UPCOMING = 1
         private const val TAB_PAST = 2
-        private const val ERROR_NO_USER = "Qoldanushy tabylmady. Qaita kiriniz."
-        private const val ERROR_LOAD_FAILED = "Jazbalardy jukteu kezinde qate paida boldy."
+        private const val ERROR_NO_USER = "Қолданушы табылмады. Қайта кіріңіз."
+        private const val ERROR_LOAD_FAILED = "Жазбаларды жүктеу кезінде қате пайда болды."
         private val DEFAULT_ZONE_ID: ZoneId = ZoneId.of("Asia/Almaty")
     }
 }

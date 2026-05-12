@@ -72,6 +72,7 @@ import com.example.stomatology.app.presentation.notifications.NotificationHistor
 import com.example.stomatology.app.presentation.profile.NotificationSettingsScreen
 import com.example.stomatology.app.presentation.profile.ProfileEditScreen
 import com.example.stomatology.app.presentation.profile.ProfileScreen
+import com.example.stomatology.app.presentation.profile.UserProfileViewModel
 import com.example.stomatology.app.presentation.records.MyRecordsScreen
 import com.example.stomatology.app.presentation.recovery.OtherServicesScreen
 import com.example.stomatology.app.presentation.reminders.RemindersScreen
@@ -150,6 +151,7 @@ private fun StyledBottomNavigationBar(
 fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = hiltViewModel()
+    val userProfileViewModel: UserProfileViewModel = hiltViewModel()
     val authState by authViewModel.state.collectAsState()
 
     val patientBottomBarRoutes = listOf(
@@ -168,6 +170,8 @@ fun AppNavigation() {
 
     val adminBottomBarRoutes = listOf(
         AdminRoutes.Dashboard,
+        AdminRoutes.Users,
+        AdminRoutes.Clinics,
         AdminRoutes.Profile
     )
 
@@ -456,8 +460,9 @@ fun AppNavigation() {
                     onBack = { navController.popBackStack() },
                     onSignOut = {
                         authViewModel.signOut()
+                        userProfileViewModel.clearUserStateForSignOut()
                         navController.navigate("login") {
-                            popUpTo("bootstrap") { inclusive = true }
+                            popUpTo(0) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
@@ -520,7 +525,15 @@ fun AppNavigation() {
             }
 
             composable(AdminRoutes.Dashboard) {
-                AdminDashboardScreen()
+                AdminDashboardScreen(initialTab = 0)
+            }
+
+            composable(AdminRoutes.Users) {
+                AdminDashboardScreen(initialTab = 1)
+            }
+
+            composable(AdminRoutes.Clinics) {
+                AdminDashboardScreen(initialTab = 0)
             }
 
             composable(AdminRoutes.Profile) {
@@ -579,32 +592,17 @@ fun DoctorBottomNavigationBar(
         DoctorBottomNavItem.Appointments,
         DoctorBottomNavItem.Profile
     )
-    NavigationBar(containerColor = PrimaryBlue) {
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = null
-                    )
-                },
-                selected = currentRoute == item.route,
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color.White,
-                    unselectedIconColor = Color.White.copy(alpha = 0.75f),
-                    indicatorColor = Color.White.copy(alpha = 0.18f)
-                ),
-                onClick = {
-                    if (currentRoute != item.route) {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
-                    }
-                }
-            )
+    val tabs = items.map { NavBarTab(it.route, it.icon, it.labelRes) }
+    StyledBottomNavigationBar(
+        currentRoute = currentRoute,
+        tabs = tabs,
+        onNavigateTo = { route ->
+            navController.navigate(route) {
+                popUpTo(navController.graph.startDestinationId)
+                launchSingleTop = true
+            }
         }
-    }
+    )
 }
 
 @Composable
@@ -614,32 +612,19 @@ fun AdminBottomNavigationBar(
 ) {
     val items = listOf(
         AdminBottomNavItem.Dashboard,
+        AdminBottomNavItem.Users,
+        AdminBottomNavItem.Clinics,
         AdminBottomNavItem.Profile
     )
-    NavigationBar(containerColor = PrimaryBlue) {
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = null
-                    )
-                },
-                selected = currentRoute == item.route,
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color.White,
-                    unselectedIconColor = Color.White.copy(alpha = 0.75f),
-                    indicatorColor = Color.White.copy(alpha = 0.18f)
-                ),
-                onClick = {
-                    if (currentRoute != item.route) {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId)
-                            launchSingleTop = true
-                        }
-                    }
-                }
-            )
+    val tabs = items.map { NavBarTab(it.route, it.icon, it.labelRes) }
+    StyledBottomNavigationBar(
+        currentRoute = currentRoute,
+        tabs = tabs,
+        onNavigateTo = { route ->
+            navController.navigate(route) {
+                popUpTo(navController.graph.startDestinationId)
+                launchSingleTop = true
+            }
         }
-    }
+    )
 }

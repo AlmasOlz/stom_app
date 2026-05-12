@@ -244,6 +244,12 @@ class UserProfileViewModel @Inject constructor(
         _uiState.update { it.copy(error = null, message = null) }
     }
 
+    fun clearUserStateForSignOut() {
+        profileListener?.remove()
+        profileListener = null
+        _uiState.value = UserProfileUiState(isLoading = false)
+    }
+
     fun showError(message: String) {
         _uiState.update { it.copy(error = message, message = null) }
     }

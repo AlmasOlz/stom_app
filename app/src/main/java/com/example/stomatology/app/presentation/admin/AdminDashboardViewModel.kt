@@ -439,6 +439,12 @@ class AdminDashboardViewModel @Inject constructor(
         _uiState.update { it.copy(error = null, message = null) }
     }
 
+    fun retryLoadData() {
+        clearNotifications()
+        observeClinics()
+        observeUsers()
+    }
+
     private fun observeClinics() {
         clinicsListener?.remove()
         _uiState.update { it.copy(isLoadingClinics = true) }

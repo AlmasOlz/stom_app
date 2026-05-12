@@ -46,8 +46,8 @@ class DoctorDashboardViewModel @Inject constructor(
 
     private companion object {
         const val TAG = "DoctorDashboardVM"
-        const val ERROR_LOAD_APPOINTMENTS = "Жазылуларды жүктеу мүмкін болмады"
-        const val ERROR_RETRY = "Қате пайда болды. Қайталап көріңіз"
+        const val ERROR_LOAD_APPOINTMENTS = "Жазбаларды жүктеу кезінде қате пайда болды."
+        const val ERROR_RETRY = "Қате пайда болды. Қайталап көріңіз."
     }
 
     private val _uiState = MutableStateFlow(DoctorDashboardUiState())
@@ -58,6 +58,11 @@ class DoctorDashboardViewModel @Inject constructor(
 
     init {
         loadDoctorProfile()
+        observeAppointments()
+    }
+
+    fun retryLoadAppointments() {
+        _uiState.update { state -> state.copy(isLoading = true, error = null) }
         observeAppointments()
     }
 
@@ -213,8 +218,9 @@ class DoctorDashboardViewModel @Inject constructor(
     private fun mapLoadError(throwable: Throwable): String {
         val firestoreError = throwable as? FirebaseFirestoreException
         return when (firestoreError?.code) {
-            FirebaseFirestoreException.Code.PERMISSION_DENIED -> "Рұқсат жоқ. Дәрігер профилін тексеріңіз"
-            FirebaseFirestoreException.Code.FAILED_PRECONDITION -> "Индекс қажет. Firestore indexes deploy жасаңыз"
+            FirebaseFirestoreException.Code.PERMISSION_DENIED -> "Жазбаларды көруге рұқсат жоқ."
+            FirebaseFirestoreException.Code.UNAVAILABLE -> "Интернет байланысын тексеріңіз."
+            FirebaseFirestoreException.Code.FAILED_PRECONDITION -> ERROR_LOAD_APPOINTMENTS
             else -> ERROR_LOAD_APPOINTMENTS
         }
     }
@@ -287,3 +293,5 @@ class DoctorDashboardViewModel @Inject constructor(
         }.getOrNull()
     }
 }
+
+

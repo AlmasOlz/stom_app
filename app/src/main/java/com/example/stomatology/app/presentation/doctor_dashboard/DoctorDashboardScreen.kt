@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.stomatology.app.domain.model.Appointment
 import com.example.stomatology.app.domain.model.toUiText
+import com.example.stomatology.app.presentation.components.AppErrorState
+import com.example.stomatology.app.presentation.components.AppLoadingState
 import com.example.stomatology.app.presentation.theme.PrimaryBlue
 
 @Composable
@@ -48,72 +49,26 @@ fun DoctorDashboardScreen(
             .fillMaxSize()
             .background(Color(0xFFF7F9FC))
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(PrimaryBlue)
-                .padding(horizontal = 20.dp, vertical = 24.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Қош келдіңіз,",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White.copy(alpha = 0.9f)
-                    )
-                    Text(
-                        text = state.doctorName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    if (state.doctorSpecialty.isNotBlank()) {
-                        Text(
-                            text = state.doctorSpecialty,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.9f)
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
-                }
-            }
-        }
+        DoctorHeader(
+            doctorName = state.doctorName,
+            doctorSpecialty = state.doctorSpecialty
+        )
 
         when {
             state.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                AppLoadingState(
+                    message = "Деректер жүктелуде...",
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
             state.error != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = state.error ?: "Жүктеу қатесі")
-                }
+                AppErrorState(
+                    message = state.error ?: "Жазбаларды жүктеу кезінде қате пайда болды.",
+                    actionText = "Қайталап көру",
+                    onAction = viewModel::retryLoadAppointments,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
             else -> {
@@ -127,13 +82,13 @@ fun DoctorDashboardScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             DashboardStatCard(
                                 modifier = Modifier.weight(1f),
-                                title = "Жаңа",
-                                value = state.pendingCount.toString()
+                                title = "Бүгінгі жазбалар",
+                                value = state.acceptedTodayCount.toString()
                             )
                             DashboardStatCard(
                                 modifier = Modifier.weight(1f),
-                                title = "Бүгін",
-                                value = state.acceptedTodayCount.toString()
+                                title = "Күтілуде",
+                                value = state.pendingCount.toString()
                             )
                         }
                     }
@@ -142,7 +97,7 @@ fun DoctorDashboardScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             DashboardStatCard(
                                 modifier = Modifier.weight(1f),
-                                title = "Аяқталды",
+                                title = "Аяқталған",
                                 value = state.completedCount.toString()
                             )
                             DashboardStatCard(
@@ -161,14 +116,14 @@ fun DoctorDashboardScreen(
                             ) {
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Text(
-                                        text = "Келесі емделуші",
+                                        text = "Келесі қабылдау",
                                         style = MaterialTheme.typography.titleSmall,
                                         color = PrimaryBlue,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = next.patientName.ifBlank { "Емделуші" },
+                                        text = next.patientName.ifBlank { "Пациент" },
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -206,11 +161,30 @@ fun DoctorDashboardScreen(
 
                     if (state.recentAppointments.isEmpty()) {
                         item {
-                            Text(
-                                text = "Әзірге жазбалар жоқ",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.Gray
-                            )
+                            Card(
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "Бүгінге жазбалар жоқ",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = "Жаңа жазбалар болғанда осы жерде көрсетіледі.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.Gray
+                                    )
+                                    TextButton(onClick = viewModel::retryLoadAppointments) {
+                                        Text("Қайталап көру")
+                                    }
+                                }
+                            }
                         }
                     } else {
                         items(state.recentAppointments) { appointment ->
@@ -223,6 +197,59 @@ fun DoctorDashboardScreen(
 
                     item { Spacer(modifier = Modifier.height(12.dp)) }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DoctorHeader(
+    doctorName: String,
+    doctorSpecialty: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(PrimaryBlue)
+            .padding(horizontal = 20.dp, vertical = 24.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Қош келдіңіз,",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+                Text(
+                    text = doctorName.ifBlank { "Дәрігер" },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                if (doctorSpecialty.isNotBlank()) {
+                    Text(
+                        text = doctorSpecialty,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = Color.White
+                )
             }
         }
     }
@@ -270,7 +297,7 @@ private fun DoctorAppointmentPreviewCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = appointment.patientName.ifBlank { "Емделуші" },
+                text = appointment.patientName.ifBlank { "Пациент" },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )

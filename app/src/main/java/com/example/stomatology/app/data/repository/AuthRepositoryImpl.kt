@@ -1,5 +1,6 @@
 package com.example.stomatology.app.data.repository
 
+import android.content.Context
 import com.example.stomatology.app.core.firebase.FirestoreCollections
 import com.example.stomatology.app.core.firebase.FirestoreFields
 import com.example.stomatology.app.core.firebase.RoleRequestStatus
@@ -8,12 +9,14 @@ import com.example.stomatology.app.domain.repository.AuthRepository
 import com.example.stomatology.app.domain.repository.DoctorRequestInfo
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    @ApplicationContext private val appContext: Context
 ) : AuthRepository {
 
     override suspend fun signInWithEmail(email: String, pass: String): Result<Boolean> {
@@ -115,6 +118,7 @@ class AuthRepositoryImpl @Inject constructor(
 
     override fun signOut() {
         firebaseAuth.signOut()
+        trySignOutGoogleClient()
     }
 
     override suspend fun getUserRole(uid: String): Result<String> {
@@ -184,6 +188,30 @@ class AuthRepositoryImpl @Inject constructor(
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Best-effort Google logout for projects where Google Sign-In is enabled.
+     * If the app does not include Google auth SDK, this silently no-ops.
+     */
+    private fun trySignOutGoogleClient() {
+        runCatching {
+            val optionsClass = Class.forName("com.google.android.gms.auth.api.signin.GoogleSignInOptions")
+            val builderClass = Class.forName("com.google.android.gms.auth.api.signin.GoogleSignInOptions\$Builder")
+            val googleSignInClass = Class.forName("com.google.android.gms.auth.api.signin.GoogleSignIn")
+
+            val defaultSignIn = optionsClass.getField("DEFAULT_SIGN_IN").get(null)
+            val builder = builderClass.getConstructor(optionsClass).newInstance(defaultSignIn)
+            val builtOptions = builderClass.getMethod("build").invoke(builder)
+
+            val getClient = googleSignInClass.getMethod(
+                "getClient",
+                Context::class.java,
+                optionsClass
+            )
+            val googleSignInClient = getClient.invoke(null, appContext, builtOptions)
+            googleSignInClient?.javaClass?.getMethod("signOut")?.invoke(googleSignInClient)
         }
     }
 }
