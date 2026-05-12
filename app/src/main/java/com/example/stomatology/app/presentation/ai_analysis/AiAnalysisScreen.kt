@@ -65,7 +65,7 @@ import java.io.FileOutputStream
 import kotlin.math.cos
 import kotlin.math.sin
 
-// ─── Tooth Colour Palette ─────────────────────────────────────────────────────
+
 
 val ColorUnknown = Color.White
 val ColorHealthy = Color(0xFFF5F5F5)
@@ -78,11 +78,10 @@ val ColorImplant = Color(0xFF9575CD)
 val ColorCrown = Color(0xFFFF5252)
 val ColorOther = Color(0xFF64B5F6)
 
-// ─── Wisdom teeth set ─────────────────────────────────────────────────────────
+
 
 private val WISDOM_TEETH = setOf("RU8", "LU8", "LL8", "RL8")
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -454,7 +453,6 @@ fun AiAnalysisScreen(
     }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 private fun uriToTempFile(context: Context, uri: Uri): File {
     val inputStream = context.contentResolver.openInputStream(uri)
@@ -468,7 +466,7 @@ private fun uriToTempFile(context: Context, uri: Uri): File {
     return tempFile
 }
 
-// ─── Jaw Layout ───────────────────────────────────────────────────────────────
+
 
 @Composable
 fun JawLayout(
@@ -515,10 +513,7 @@ fun JawLayout(
     }
 }
 
-/**
- * Display  1-16  → upper jaw, right-to-left  → RU8..RU1, LU1..LU8
- * Display 17-32  → lower jaw, right-to-left  → LL8..LL1, RL1..RL8
- */
+
 fun mapYoloClassToDisplayNumber(yoloClass: String): Int {
     val clean = yoloClass.trim().uppercase()
     if (clean.length < 3) return -1
@@ -552,7 +547,7 @@ fun isWisdomDisplayNumber(displayNumber: Int): Boolean {
     return isWisdomToothCode(toothCode)
 }
 
-// ─── Single Tooth ─────────────────────────────────────────────────────────────
+
 
 @Composable
 fun DrawTooth(
@@ -597,7 +592,7 @@ fun resolveToothColor(
     finding: Finding?
 ): Color {
     if (finding == null) {
-        return ColorUnknown   // ← МАҢЫЗДЫ
+        return ColorUnknown
     }
 
     return when (finding.state) {
@@ -641,7 +636,6 @@ fun getToothStatusText(
     }
 }
 
-// ─── Legend ───────────────────────────────────────────────────────────────────
 
 @Composable
 fun LegendItem(
@@ -673,7 +667,6 @@ fun LegendItem(
     }
 }
 
-// ─── Condition text helper ────────────────────────────────────────────────────
 
 @Composable
 private fun AnalysisReportSection(
@@ -715,12 +708,12 @@ private fun ReportOverviewCard(report: AiAnalysisReport) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MetricPill("Сау", report.healthyTeeth.toString(), Color(0xFF43A047), Modifier.weight(1f))
                 MetricPill("Қалпына", report.restorationCount.toString(), ColorFilling, Modifier.weight(1f))
-                MetricPill("Ем қажет", report.activeTreatmentTeeth.size.toString(), Color(0xFF7E57C2), Modifier.weight(1f))
+                MetricPill("Емдеу қажет", report.activeTreatmentTeeth.size.toString(), Color(0xFF7E57C2), Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Ем қажет: белсенді емдеу керек тістер саны",
+                text = "Емдеу қажет: белсенді емдеу керек тістер саны",
                 color = Color.Gray,
                 fontSize = 11.sp
             )

@@ -1,4 +1,4 @@
-package com.example.stomatology.app.domain.model
+﻿package com.example.stomatology.app.domain.model
 
 fun AppointmentStatus.toUiText(): String {
     return when (this) {

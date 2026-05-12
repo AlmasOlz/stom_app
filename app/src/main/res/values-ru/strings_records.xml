@@ -1,11 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="records_title">Менің жазбаларым</string>
     <string name="records_tab_all">Барлығы</string>
     <string name="records_tab_upcoming">Алдағы</string>
     <string name="records_tab_past">Өткен</string>
-    <string name="records_error_generic">Жазбаларды жүктеу сәтсіз аяқталды</string>
-    <string name="records_empty_all">Әлі жазба жоқ</string>
-    <string name="records_empty_upcoming">Алдағы жазба жоқ</string>
-    <string name="records_empty_past">Өткен жазба жоқ</string>
+    <string name="records_error_generic">Жазбаларды жүктеу кезінде қате пайда болды.</string>
+    <string name="records_empty_all">Сізде әзірге жазба жоқ</string>
+    <string name="records_empty_upcoming">Алдағы жазбалар жоқ</string>
+    <string name="records_empty_past">Өткен жазбалар жоқ</string>
 </resources>

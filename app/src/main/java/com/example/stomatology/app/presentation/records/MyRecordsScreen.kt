@@ -249,24 +249,24 @@ fun MyRecordsScreen(
     if (rescheduleTarget != null) {
         AlertDialog(
             onDismissRequest = { rescheduleTarget = null },
-            title = { Text("РЈР°Т›С‹С‚С‚С‹ У©Р·РіРµСЂС‚Сѓ") },
+            title = { Text("Уақытты өзгерту") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Р–Р°ТЈР° РєТЇРЅ РјРµРЅ СѓР°Т›С‹С‚С‚С‹ С‚Р°ТЈРґР°ТЈС‹Р·",
+                        text = "Жаңа күн мен уақытты таңдаңыз",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     OutlinedTextField(
                         value = rescheduleDate,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("РљТЇРЅ") },
+                        label = { Text("Күн") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { showRescheduleDatePicker = true }
                     )
                     OutlinedButton(onClick = { showRescheduleDatePicker = true }) {
-                        Text("РљТЇРЅРґС– С‚Р°ТЈРґР°Сѓ")
+                        Text("Күнді таңдау")
                     }
 
                     if (state.isSlotsLoading) {
@@ -289,12 +289,12 @@ fun MyRecordsScreen(
                         newTime = rescheduleTime
                     )
                 }) {
-                    Text("РЎР°Т›С‚Р°Сѓ")
+                    Text("Сақтау")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { rescheduleTarget = null }) {
-                    Text("Р–Р°Р±Сѓ")
+                    Text("Жабу")
                 }
             }
         )
@@ -303,14 +303,14 @@ fun MyRecordsScreen(
     if (cancelTarget != null) {
         AlertDialog(
             onDismissRequest = { cancelTarget = null },
-            title = { Text("Р–Р°Р·Р±Р°РґР°РЅ Р±Р°СЃ С‚Р°СЂС‚Сѓ") },
+            title = { Text("Жазбадан бас тарту") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Р‘Р°СЃ С‚Р°СЂС‚Сѓ СЃРµР±РµР±С–РЅ Р¶Р°Р·С‹ТЈС‹Р·")
+                    Text("Бас тарту себебін жазыңыз")
                     OutlinedTextField(
                         value = cancelReason,
                         onValueChange = { value -> cancelReason = value },
-                        label = { Text("РЎРµР±РµРї") },
+                        label = { Text("Себеп") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -323,12 +323,12 @@ fun MyRecordsScreen(
                         reason = cancelReason
                     )
                 }) {
-                    Text("Р Р°СЃС‚Р°Сѓ")
+                    Text("Растау")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { cancelTarget = null }) {
-                    Text("Р–Р°Р±Сѓ")
+                    Text("Жабу")
                 }
             }
         )
@@ -381,7 +381,7 @@ private fun AppointmentCard(
                 .padding(18.dp)
         ) {
             Text(
-                text = appointment.clinicName.ifBlank { "РљР»РёРЅРёРєР°" },
+                text = appointment.clinicName.ifBlank { "Клиника" },
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -389,22 +389,22 @@ private fun AppointmentCard(
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Р”У™СЂС–РіРµСЂ: ${appointment.doctorName.ifBlank { "РљУ©СЂСЃРµС‚С–Р»РјРµРіРµРЅ" }}",
+                text = "Дәрігер: ${appointment.doctorName.ifBlank { "Көрсетілмеген" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
             Text(
-                text = "ТљС‹Р·РјРµС‚: ${appointment.service.ifBlank { "-" }}",
+                text = "Қызмет: ${appointment.service.ifBlank { "-" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
             Text(
-                text = "РљТЇРЅС–: ${appointment.date.ifBlank { "-" }}",
+                text = "Күні: ${appointment.date.ifBlank { "-" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
             Text(
-                text = "РЈР°Т›С‹С‚С‹: ${appointment.time.ifBlank { "-" }}",
+                text = "Уақыты: ${appointment.time.ifBlank { "-" }}",
                 fontSize = 14.sp,
                 color = Color.White.copy(alpha = 0.9f)
             )
@@ -412,7 +412,7 @@ private fun AppointmentCard(
             if (appointment.previousDate != null || appointment.previousTime != null) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "РђР»РґС‹ТЈТ“С‹ СѓР°Т›С‹С‚: ${appointment.previousDate.orEmpty()} ${appointment.previousTime.orEmpty()}",
+                    text = "Алдыңғы уақыт: ${appointment.previousDate.orEmpty()} ${appointment.previousTime.orEmpty()}",
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.8f)
                 )
@@ -428,13 +428,13 @@ private fun AppointmentCard(
                         onClick = onReschedule,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
                     ) {
-                        Text("РЈР°Т›С‹С‚С‚С‹ У©Р·РіРµСЂС‚Сѓ")
+                        Text("Уақытты өзгерту")
                     }
                     OutlinedButton(
                         onClick = onCancel,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
                     ) {
-                        Text("Р‘Р°СЃ С‚Р°СЂС‚Сѓ")
+                        Text("Бас тарту")
                     }
                 }
             }
@@ -468,7 +468,7 @@ private fun SlotChoiceGrid(
     onSelect: (String) -> Unit
 ) {
     if (slots.isEmpty()) {
-        Text("Р‘РѕСЃ СЃР»РѕС‚ Р¶РѕТ›", color = Color.Gray)
+        Text("Бос слот жоқ", color = Color.Gray)
         return
     }
 
@@ -500,7 +500,7 @@ private fun SlotChoiceGrid(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = slot.time, color = fg, fontWeight = FontWeight.Medium)
                             if (!enabled) {
-                                Text("РўРѕР»С‹Т›", color = fg, style = MaterialTheme.typography.labelSmall)
+                                Text("Толық", color = fg, style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }

@@ -1,4 +1,4 @@
-package com.example.stomatology.app.presentation.auth
+﻿package com.example.stomatology.app.presentation.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -63,7 +63,7 @@ class AuthViewModel @Inject constructor(
                     isSessionChecked = true,
                     isSuccess = false,
                     role = null,
-                    error = "Заявка доктора еще не подтверждена админом."
+                    error = "Дәрігер өтінімі әлі әкімшімен расталмаған."
                 )
                 return@launch
             }
@@ -148,23 +148,22 @@ class AuthViewModel @Inject constructor(
                 _state.value = _state.value.copy(
                     clinics = clinics,
                     isClinicsLoading = false,
-                    error = if (clinics.isEmpty()) "В базе пока нет клиник. Добавьте клиники в админ-панели." else null
+                    error = if (clinics.isEmpty()) "Базада клиникалар табылмады. Әкімші панелінен клиника қосыңыз." else null
                 )
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isClinicsLoading = false,
-                    error = mapAuthError(e.message, "Не удалось загрузить клиники")
+                    error = mapAuthError(e.message, "Клиникаларды жүктеу мүмкін болмады.")
                 )
             }
         }
     }
-
     fun login() {
-        val email = _state.value.email.trim()
+        val email = normalizeEmailInput(_state.value.email)
         val pass = _state.value.password.trim()
 
         if (email.isBlank() || pass.isBlank()) {
-            _state.value = _state.value.copy(error = "Заполните email и пароль")
+            _state.value = _state.value.copy(error = "Электрондық пошта мен құпия сөзді енгізіңіз.")
             return
         }
 
@@ -175,7 +174,7 @@ class AuthViewModel @Inject constructor(
             if (result.isFailure) {
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    error = mapAuthError(result.exceptionOrNull()?.message, "Login failed")
+                    error = mapAuthError(result.exceptionOrNull()?.message, "Кіру мүмкін болмады.")
                 )
                 return@launch
             }
@@ -184,7 +183,7 @@ class AuthViewModel @Inject constructor(
             if (uid == null) {
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    error = "User id not found after login"
+                    error = "Қолданушы табылмады. Қайта кіріңіз."
                 )
                 return@launch
             }
@@ -193,7 +192,7 @@ class AuthViewModel @Inject constructor(
             if (roleResult.isFailure) {
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    error = mapAuthError(roleResult.exceptionOrNull()?.message, "Failed to load user role")
+                    error = mapAuthError(roleResult.exceptionOrNull()?.message, "Қолданушы рөлін жүктеу мүмкін болмады.")
                 )
                 return@launch
             }
@@ -205,7 +204,7 @@ class AuthViewModel @Inject constructor(
                     isLoading = false,
                     isSuccess = false,
                     role = null,
-                    error = "Ваша заявка доктора еще не подтверждена админом."
+                    error = "Дәрігер өтінімі әлі әкімшімен расталмаған."
                 )
                 return@launch
             }
@@ -225,29 +224,29 @@ class AuthViewModel @Inject constructor(
         val firstName = _state.value.firstName.trim()
         val lastName = _state.value.lastName.trim()
         val phone = _state.value.phone.trim()
-        val email = _state.value.email.trim()
+        val email = normalizeEmailInput(_state.value.email)
         val pass = _state.value.password.trim()
         val requestedRole = _state.value.requestedRole
         val specialty = _state.value.specialty.trim()
         val clinicId = _state.value.clinicId.trim()
 
         if (firstName.isBlank() || lastName.isBlank() || phone.isBlank() || email.isBlank() || pass.isBlank()) {
-            _state.value = _state.value.copy(error = "Заполните все поля")
+            _state.value = _state.value.copy(error = "Барлық өрістерді толтырыңыз.")
             return
         }
 
         if (pass.length < 6) {
-            _state.value = _state.value.copy(error = "Пароль должен быть минимум 6 символов")
+            _state.value = _state.value.copy(error = "Құпия сөз кемінде 6 таңбадан тұруы керек.")
             return
         }
 
         if (requestedRole == UserRoles.DOCTOR) {
             if (specialty.isBlank()) {
-                _state.value = _state.value.copy(error = "Укажите специальность доктора")
+                _state.value = _state.value.copy(error = "Дәрігер мамандығын көрсетіңіз.")
                 return
             }
             if (clinicId.isBlank()) {
-                _state.value = _state.value.copy(error = "Выберите клинику")
+                _state.value = _state.value.copy(error = "Клиниканы таңдаңыз.")
                 return
             }
         }
@@ -269,7 +268,7 @@ class AuthViewModel @Inject constructor(
             if (result.isFailure) {
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    error = mapAuthError(result.exceptionOrNull()?.message, "Registration failed")
+                    error = mapAuthError(result.exceptionOrNull()?.message, "Тіркелу мүмкін болмады.")
                 )
                 return@launch
             }
@@ -307,30 +306,52 @@ class AuthViewModel @Inject constructor(
         return info?.requestedRole == UserRoles.DOCTOR &&
             info.requestStatus == RoleRequestStatus.PENDING
     }
-
     private fun mapAuthError(rawMessage: String?, fallback: String): String {
         val message = rawMessage.orEmpty()
         val lower = message.lowercase()
 
         return when {
+            lower.contains("blocked all requests from this device due to unusual activity") ||
+                lower.contains("we have blocked all requests from this device") ||
+                lower.contains("too many requests") ||
+                lower.contains("try again later") -> {
+                "Бұл құрылғыдан сұраулар уақытша бұғатталды. Біраз уақыттан кейін қайта кіріп көріңіз."
+            }
+
+            lower.contains("email address is badly formatted") ||
+                lower.contains("badly formatted") ||
+                lower.contains("invalid email") ||
+                lower.contains("malformed") -> {
+                "Электрондық поштаның пішімі қате."
+            }
+
             lower.contains("email address is already in use") || lower.contains("email already in use") -> {
-                "Этот email уже зарегистрирован."
+                "Бұл email бұрын тіркелген."
             }
 
             lower.contains("password is invalid") ||
+                lower.contains("there is no user record") ||
+                lower.contains("user not found") ||
                 lower.contains("the supplied auth credential is incorrect") -> {
-                "Неверный email или пароль."
+                "Email немесе құпия сөз қате."
             }
 
             lower.contains("missing or insufficient permissions") || lower.contains("permission-denied") -> {
-                "Нет доступа к Firestore. Проверьте firestore.rules."
+                "Firestore рұқсаты жеткіліксіз."
             }
 
             lower.contains("network error") || lower.contains("timeout") -> {
-                "Проблема с сетью. Проверьте интернет и повторите попытку."
+                "Интернет байланысын тексеріңіз."
             }
 
             else -> message.ifBlank { fallback }
         }
+    }
+
+    private fun normalizeEmailInput(raw: String): String {
+        return raw
+            .trim()
+            .replace("\u00A0", "")
+            .replace("\\s+".toRegex(), "")
     }
 }

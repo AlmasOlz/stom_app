@@ -63,10 +63,7 @@ class AiAnalysisViewModel @Inject constructor(
         _uiState.value = AiState.Idle
     }
 
-    /**
-     * Текст бойынша серверлік AI жоқ кезінде — алдын ала кеңес мәтіні.
-     * Нақты диагнозды дәрігер қояды.
-     */
+
     fun analyzeComplaint(raw: String) {
         val complaint = raw.trim()
         if (complaint.isEmpty()) return
