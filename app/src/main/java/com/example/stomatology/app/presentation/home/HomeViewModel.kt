@@ -31,7 +31,7 @@ data class HomeClinicFilters(
     val district: String = "",
     val openNowOnly: Boolean = false
 )
-
+ф
 data class HomeUiState(
     val isLoading: Boolean = true,
     val clinics: List<Clinic> = emptyList(),
