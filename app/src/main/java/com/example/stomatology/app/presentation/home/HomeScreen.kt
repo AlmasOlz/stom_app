@@ -344,7 +344,7 @@ private fun NearbyClinicsSection(
     ) {
         items(clinics.take(8)) { clinic ->
             Card(
-                modifier = Modifierпш
+                modifier = Modifier
                     .width(220.dp)
                     .clickable { onOpenClinic(clinic.id, clinic.services.firstOrNull().orEmpty()) },
                 shape = RoundedCornerShape(12.dp),
